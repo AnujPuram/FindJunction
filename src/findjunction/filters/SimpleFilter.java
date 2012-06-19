@@ -33,7 +33,7 @@ public class SimpleFilter implements SymmetryFilterI{
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
         SeqSpan span = ss.getSpan(bioseq);
-        if((span.getMax()-span.getMin()) >= 100)
+        if((Math.abs(span.getEnd()-span.getStart())) >= 100)
             return true;
         return false;
     }
