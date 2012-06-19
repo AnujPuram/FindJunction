@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package findjunction;
+package findjunction.filters;
 
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
@@ -33,7 +33,7 @@ public class SimpleFilter implements SymmetryFilterI{
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
         SeqSpan span = ss.getSpan(bioseq);
-        if(Math.abs(span.getEnd()-span.getStart()) >= 100)
+        if((span.getMax()-span.getMin()) >= 100)
             return true;
         return false;
     }

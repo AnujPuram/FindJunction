@@ -4,6 +4,7 @@
  */
 package findjunction;
 
+import findjunction.filters.SimpleFilter;
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
@@ -32,7 +33,7 @@ public class FindJunction {
         SimpleFilter filter = new SimpleFilter();
         URI uri = new URI("file:"+args[0]);
         BAM bam = new BAM(uri,"small_hits",new AnnotatedSeqGroup("small_hits"));
-        OutputStream os  = new FileOutputStream("/Users/auser/Desktop/test2.bed");
+        OutputStream os  = new FileOutputStream("/Users/auser/Desktop/test1.bed");
         DataOutputStream dos = new DataOutputStream(os);
         BedParser parser = new BedParser();
         List<BioSeq> list = bam.getChromosomeList();
