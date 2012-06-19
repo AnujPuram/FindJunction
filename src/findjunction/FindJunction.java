@@ -47,6 +47,7 @@ public class FindJunction {
             for(SeqSymmetry sym : syms){
                 SeqSpan span = sym.getSpan(list.get(i));
                 System.out.println("Child Count: "+sym.getChildCount());
+                
                 System.out.println("Start: "+span.getStart());
                 System.out.println("End: "+span.getEnd());
                 for(int j=0;j<sym.getChildCount();j++){
