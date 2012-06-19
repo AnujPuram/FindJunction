@@ -45,7 +45,7 @@ public class FindJunction {
         else if(args.length == 3){
             if(args[1].equals("-n")){
                 fJ.setThreshold(Integer.parseInt(args[2]));
-                fJ.init(args[0],"/Users/auser/Desktop/test2.bed");
+                fJ.init(args[0],home+"/Desktop/test2.bed");
             }
             else{
                 fJ.setThreshold(5);
@@ -58,11 +58,7 @@ public class FindJunction {
         }
         else if(args.length == 1){
             fJ.setThreshold(5);
-            fJ.init(args[0],"/Users/auser/Desktop/test2.bed");
-        }
-        else{
-            fJ.setThreshold(5);
-            fJ.init("/Users/auser/Desktop/genoviz/branches/igb_6_4/genometryImpl/test/data/bam/small_hits.bam", "/Users/auser/Desktop/test2.bed");
+            fJ.init(args[0],home+"/Desktop/test2.bed");
         }
     }
     
