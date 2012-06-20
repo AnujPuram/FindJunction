@@ -34,33 +34,27 @@ public class FindJunction {
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         String home = System.getProperty("user.home");
-        if(args.length == 2){
-            if(args[1].equals("-n")){
-                fJ.setThreshold(5);
-                fJ.init(args[0],home+"/test2.bed");
+        fJ.setThreshold(5);
+        String input = "";
+        String output = home+"/test2.bed";
+        if(args.length % 2 == 0 && args.length>0){
+            for(int i=0;i<args.length;i=i+2){
+                if(args[i].equals("-n"))
+                    fJ.setThreshold(Integer.parseInt(args[i+1]));
+                else if(args[i].equals("-i"))
+                    input = args[i+1];
+                else if(args[i].equals("-o"))
+                    output = args[i+1];
             }
+            if(!input.equals(""))
+                fJ.init(input,output);
             else
-                fJ.init(args[0],args[1]);
+                System.out.println("Please give the input file path");
         }
-        else if(args.length == 3){
-            if(args[1].equals("-n")){
-                fJ.setThreshold(Integer.parseInt(args[2]));
-                fJ.init(args[0],home+"/Desktop/test2.bed");
-            }
-            else{
-                fJ.setThreshold(5);
-                fJ.init(args[0], args[1]);
-            }
-        }
-        else if(args.length == 4){
-            fJ.setThreshold(Integer.parseInt(args[3]));
-            fJ.init(args[0],args[1]);
-        }
-        else if(args.length == 1){
-            fJ.setThreshold(5);
-            fJ.init(args[0],home+"/Desktop/test2.bed");
-        }
-    }
+        else
+            System.out.println("Invalid Number of Arguments");
+        
+       }
     
     //This is the method where the control of the program gets started
     public void init(String input, String output) throws URISyntaxException, Exception{
@@ -74,20 +68,29 @@ public class FindJunction {
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(String input , String output) throws URISyntaxException, Exception{
        ThresholdFilter filter = new ThresholdFilter();
+       CreateBedSymOperator operator = new CreateBedSymOperator();
        URI uri = new URI(input);
        BAM bam = new BAM(uri,"small_hits",new AnnotatedSeqGroup("small_hits")); 
        OutputStream os  = new FileOutputStream(output);
        DataOutputStream dos = new DataOutputStream(os);
        List<BioSeq> list = bam.getChromosomeList();
        BedParser parser = new BedParser();
-       List<SeqSymmetry> result = new ArrayList<SeqSymmetry>();
        for(int i=0;i<list.size();i++){
             System.out.println(list.get(i).getID());
+            List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
             List<SeqSymmetry> syms = bam.getChromosome(list.get(i));
-            for(SeqSymmetry sym : syms)
-                if(filter.filterSymmetry(list.get(i), sym))
-                    result.add(sym);
-             parser.writeBedFormat(dos, result, list.get(i));
+            List<SeqSymmetry> result = new ArrayList<SeqSymmetry>();
+            if(syms.size()>0){
+                for(SeqSymmetry sym : syms)
+                    if(filter.filterSymmetry(list.get(i), sym))
+                        result.add(sym);
+                SeqSymmetry container =  operator.operate(list.get(i), result);
+                int children = container.getChildCount();
+                for(int j=0;j<children;j++){
+                    junctions.add(container.getChild(j));
+                }
+            }
+            parser.writeBedFormat(dos, junctions, list.get(i));
        }    
     }
     

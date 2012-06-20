@@ -34,6 +34,7 @@ public class ThresholdFilter implements SymmetryFilterI{
     }
 
     @Override
+    //This filter is going to discard the whole sym even if one of its children has less length than the threshold
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss){
         int threshold = findJunction.getThreshold(); 
         int childCount = ss.getChildCount();
@@ -43,7 +44,7 @@ public class ThresholdFilter implements SymmetryFilterI{
         for(int i=0;i<childCount;i++){
             child = ss.getChild(i);
             SeqSpan childSpan = child.getSpan(bioseq);
-            if((Math.abs(childSpan.getEnd() - childSpan.getStart())) < threshold)
+            if((childSpan.getMax() - childSpan.getMin())< threshold)
                 return false;
         }
         return true;
