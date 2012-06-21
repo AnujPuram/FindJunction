@@ -40,13 +40,11 @@ public class ThresholdFilter implements SymmetryFilterI{
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss){
         int threshold = findJunction.getThreshold(); 
         int childCount = ss.getChildCount();
+        ChildThresholdFilter filter = new ChildThresholdFilter();
         SeqSymmetry child;
-        if(childCount <= 0)
-            return false;
         for(int i=0;i<childCount;i++){
             child = ss.getChild(i);
-            SeqSpan childSpan = child.getSpan(bioseq);
-            if((childSpan.getMax() - childSpan.getMin())< threshold)
+            if(!filter.filterSymmetry(bioseq, child))
                 return false;
         }
         return true;

@@ -71,56 +71,19 @@ public class FindJunction {
     
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(String input , String output) throws URISyntaxException, Exception{
-       ThresholdFilter filter = new ThresholdFilter();
-       NoIntronFilter noIntronFilter = new NoIntronFilter();
-       ChildThresholdFilter childFilter = new ChildThresholdFilter();
-       CreateBedSymOperator operator = new CreateBedSymOperator();
+       FindJunctionOperator operator = new FindJunctionOperator();
        URI uri = new URI(input);
        BAM bam = new BAM(uri,"small_hits",new AnnotatedSeqGroup("small_hits")); 
        OutputStream os  = new FileOutputStream(output);
        DataOutputStream dos = new DataOutputStream(os);
        List<BioSeq> list = bam.getChromosomeList();
        BedParser parser = new BedParser();
+       List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
        for(int i=0;i<list.size();i++){
-            System.out.println(list.get(i).getID());
-            List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
-            List<SeqSymmetry> nonZeroIntronSyms = new ArrayList<SeqSymmetry>();
+            System.out.println(list.get(i).getID());            
             List<SeqSymmetry> syms = bam.getChromosome(list.get(i));
-            List<SeqSymmetry> result = new ArrayList<SeqSymmetry>();
             if(syms.size()>0){
-                for(SeqSymmetry sym : syms){
-                    if(noIntronFilter.filterSymmetry(list.get(i), sym))
-                        nonZeroIntronSyms.add(sym);
-                }
-                for(SeqSymmetry sym : nonZeroIntronSyms){
-                    if(filter.filterSymmetry(list.get(i), sym))
-                        result.add(SeqUtils.getIntronSym(sym, list.get(i)));
-                    else{
-                        SeqSymmetry intronSym = SeqUtils.getIntronSym(sym, list.get(i));
-                        int childCount = sym.getChildCount();
-                        List<SeqSymmetry>eligibleIntrons = new ArrayList<SeqSymmetry>();
-                        for(int j=0;j<intronSym.getChildCount();j++)
-                            eligibleIntrons.add(intronSym.getChild(j));
-                        Object array[] = eligibleIntrons.toArray();
-                        for(int j=0; j<childCount; j++){
-                            if(!(childFilter.filterSymmetry(list.get(i), sym.getChild(j)))){
-                                if(j-1 >= 0)
-                                    array[j-1] = null;
-                                if(j < childCount-1)
-                                    array[j] = null;
-                            }
-                        }
-                        ((SimpleMutableSeqSymmetry)intronSym).removeChildren();
-                        for(int j=0;j<array.length;j++){
-                            if(array[j] != null)
-                                ((SimpleMutableSeqSymmetry)intronSym).addChild((SeqSymmetry)array[j]);
-                        }
-                        eligibleIntrons.clear();
-                        if(intronSym.getChildCount() > 0)
-                            result.add(intronSym);
-                    }
-                }
-                SeqSymmetry container =  operator.operate(list.get(i), result);
+                SeqSymmetry container =  operator.operate(list.get(i), syms);
                 int children = container.getChildCount();
                 for(int j=0;j<children;j++){
                     junctions.add(container.getChild(j));
