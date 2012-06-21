@@ -98,15 +98,26 @@ public class FindJunction {
                     else{
                         SeqSymmetry intronSym = SeqUtils.getIntronSym(sym, list.get(i));
                         int childCount = sym.getChildCount();
+                        List<SeqSymmetry>eligibleIntrons = new ArrayList<SeqSymmetry>();
+                        for(int j=0;j<intronSym.getChildCount();j++)
+                            eligibleIntrons.add(intronSym.getChild(j));
+                        Object array[] = eligibleIntrons.toArray();
                         for(int j=0; j<childCount; j++){
                             if(!(childFilter.filterSymmetry(list.get(i), sym.getChild(j)))){
                                 if(j-1 >= 0)
-                                    ((SimpleMutableSeqSymmetry)intronSym).removeChild(intronSym.getChild(j-1));
+                                    array[j-1] = null;
                                 if(j < childCount-1)
-                                    ((SimpleMutableSeqSymmetry)intronSym).removeChild(intronSym.getChild(j));
+                                    array[j] = null;
                             }
                         }
-                        result.add(intronSym);
+                        ((SimpleMutableSeqSymmetry)intronSym).removeChildren();
+                        for(int j=0;j<array.length;j++){
+                            if(array[j] != null)
+                                ((SimpleMutableSeqSymmetry)intronSym).addChild((SeqSymmetry)array[j]);
+                        }
+                        eligibleIntrons.clear();
+                        if(intronSym.getChildCount() > 0)
+                            result.add(intronSym);
                     }
                 }
                 SeqSymmetry container =  operator.operate(list.get(i), result);
