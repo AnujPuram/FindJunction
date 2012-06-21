@@ -7,12 +7,14 @@ package findjunction.filters;
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.filter.SymmetryFilterI;
+import com.affymetrix.genometryImpl.symmetry.BAMSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import findjunction.FindJunction;
+import net.sf.samtools.Cigar;
 
 /**
  *
- * @author auser
+ * @author Anuj
  */
 public class ThresholdFilter implements SymmetryFilterI{
 

@@ -8,21 +8,24 @@ import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.filter.SymmetryFilterI;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
+import findjunction.FindJunction;
 
 /**
  *
- * @author auser
+ * @author Anuj
  */
-public class SimpleFilter implements SymmetryFilterI{
+public class ChildThresholdFilter implements SymmetryFilterI{
 
+    FindJunction fJ = new FindJunction();
+    
     @Override
     public String getName() {
-        return "simple";
+        return null;
     }
 
     @Override
     public boolean setParam(Object o) {
-        return true;
+        return false;
     }
 
     @Override
@@ -33,9 +36,11 @@ public class SimpleFilter implements SymmetryFilterI{
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
         SeqSpan span = ss.getSpan(bioseq);
-        if((Math.abs(span.getEnd()-span.getStart())) >= 100)
+        int threshold = fJ.getThreshold();
+        if((span.getMax() - span.getMin()) < threshold)
+            return false;
+        else
             return true;
-        return false;
     }
     
 }

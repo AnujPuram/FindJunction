@@ -17,7 +17,7 @@ import java.util.*;
 
 /**
  *
- * @author auser
+ * @author Anuj
  */
 public class CreateBedSymOperator implements Operator{
 
@@ -35,13 +35,11 @@ public class CreateBedSymOperator implements Operator{
     public SeqSymmetry operate(BioSeq bioseq, List<SeqSymmetry> list) {
         TypeContainerAnnot container = new TypeContainerAnnot("test", "bed");
         FindJunction junction = new FindJunction();
-        HashMap<String, SeqSymmetry> map = new HashMap<String , SeqSymmetry>();
-        SeqSymmetry intronSym;
+        HashMap<String, SpecificUcscBedSym> map = new HashMap<String , SpecificUcscBedSym>();
         int count;
         int blockMins[] = new int[2];
         int blockMaxs[] = new int[2];
-        for(SeqSymmetry sym : list){
-            intronSym = SeqUtils.getIntronSym(sym, bioseq);
+        for(SeqSymmetry intronSym : list){
             count = intronSym.getChildCount();
             for(int i=0;i<count;i++){
                 SeqSpan span = intronSym.getChild(i).getSpan(bioseq);
@@ -50,11 +48,11 @@ public class CreateBedSymOperator implements Operator{
                 blockMaxs[0] = span.getMin();
                 blockMaxs[1] = span.getMax() + junction.getThreshold();
                 String name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax();
-                SeqSymmetry tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-junction.getThreshold(),
+                SpecificUcscBedSym tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-junction.getThreshold(),
                         span.getMax()+junction.getThreshold(), name, 1, true, 0, 0, blockMins, blockMaxs);
                 if(map.containsKey(name)){
                     float score = ((SpecificUcscBedSym)(map.get(name))).getScore();
-                    ((SpecificUcscBedSym)(map.get(name))).setScore(++score);                    
+                    map.get(name).setScore(++score);                    
                 }
                 else
                     map.put(name,tempSym);

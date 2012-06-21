@@ -4,13 +4,17 @@
  */
 package findjunction;
 
-import findjunction.filters.SimpleFilter;
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.parsers.BedParser;
 import com.affymetrix.genometryImpl.symloader.BAM;
+import com.affymetrix.genometryImpl.symmetry.BAMSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
+import com.affymetrix.genometryImpl.symmetry.SimpleMutableSeqSymmetry;
+import com.affymetrix.genometryImpl.util.SeqUtils;
+import findjunction.filters.ChildThresholdFilter;
+import findjunction.filters.NoIntronFilter;
 import findjunction.filters.ThresholdFilter;
 import java.io.*;
 import java.net.URI;
@@ -68,6 +72,8 @@ public class FindJunction {
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(String input , String output) throws URISyntaxException, Exception{
        ThresholdFilter filter = new ThresholdFilter();
+       NoIntronFilter noIntronFilter = new NoIntronFilter();
+       ChildThresholdFilter childFilter = new ChildThresholdFilter();
        CreateBedSymOperator operator = new CreateBedSymOperator();
        URI uri = new URI(input);
        BAM bam = new BAM(uri,"small_hits",new AnnotatedSeqGroup("small_hits")); 
@@ -78,12 +84,31 @@ public class FindJunction {
        for(int i=0;i<list.size();i++){
             System.out.println(list.get(i).getID());
             List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
+            List<SeqSymmetry> nonZeroIntronSyms = new ArrayList<SeqSymmetry>();
             List<SeqSymmetry> syms = bam.getChromosome(list.get(i));
             List<SeqSymmetry> result = new ArrayList<SeqSymmetry>();
             if(syms.size()>0){
-                for(SeqSymmetry sym : syms)
+                for(SeqSymmetry sym : syms){
+                    if(noIntronFilter.filterSymmetry(list.get(i), sym))
+                        nonZeroIntronSyms.add(sym);
+                }
+                for(SeqSymmetry sym : nonZeroIntronSyms){
                     if(filter.filterSymmetry(list.get(i), sym))
-                        result.add(sym);
+                        result.add(SeqUtils.getIntronSym(sym, list.get(i)));
+                    else{
+                        SeqSymmetry intronSym = SeqUtils.getIntronSym(sym, list.get(i));
+                        int childCount = sym.getChildCount();
+                        for(int j=0; j<childCount; j++){
+                            if(!(childFilter.filterSymmetry(list.get(i), sym.getChild(j)))){
+                                if(j-1 >= 0)
+                                    ((SimpleMutableSeqSymmetry)intronSym).removeChild(intronSym.getChild(j-1));
+                                if(j < childCount-1)
+                                    ((SimpleMutableSeqSymmetry)intronSym).removeChild(intronSym.getChild(j));
+                            }
+                        }
+                        result.add(intronSym);
+                    }
+                }
                 SeqSymmetry container =  operator.operate(list.get(i), result);
                 int children = container.getChildCount();
                 for(int j=0;j<children;j++){
