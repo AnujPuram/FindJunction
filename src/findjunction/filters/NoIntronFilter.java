@@ -31,7 +31,7 @@ public class NoIntronFilter implements SymmetryFilterI{
 
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
-        if(ss.getChildCount() <= 0)
+        if(ss.getChildCount() <= 1)
             return false;
         return true;
     }

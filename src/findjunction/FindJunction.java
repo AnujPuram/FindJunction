@@ -15,7 +15,6 @@ import com.affymetrix.genometryImpl.symmetry.SimpleMutableSeqSymmetry;
 import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
 import findjunction.filters.NoIntronFilter;
-import findjunction.filters.ThresholdFilter;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
