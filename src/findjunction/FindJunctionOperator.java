@@ -22,12 +22,16 @@ import java.util.*;
  * @author Anuj
  */
 public class FindJunctionOperator implements Operator{
-    private final int default_threshold = 5;
+    private static final int default_threshold = 5;
     private static SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private static SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
     private static SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
-    
-    int threshold = default_threshold;
+    private static int threshold = default_threshold;
+    private static boolean twoTracks;
+    public FindJunctionOperator(int threshold, boolean twoTracks){
+        this.threshold = threshold;
+        this.twoTracks = twoTracks;
+    }   
     
     @Override
     public String getName() {
@@ -102,7 +106,7 @@ public class FindJunctionOperator implements Operator{
         List<Integer> childIntronIndices = new ArrayList<Integer>();
         int childCount = sym.getChildCount();
         SeqSymmetry intronChild, intronSym;
-    
+        childThresholdFilter.setParam(threshold);
         for(int i=0;i<childCount - 1;i++){
             if(childThresholdFilter.filterSymmetry(bioseq, sym.getChild(i)) && childThresholdFilter.filterSymmetry(bioseq, sym.getChild(i+1))){
                 childIntronIndices.add(i);
@@ -120,16 +124,15 @@ public class FindJunctionOperator implements Operator{
     private static void addToMap(SeqSymmetry intronSym , HashMap<String, SpecificUcscBedSym> map, BioSeq bioseq){
         int blockMins[] = new int[2];
         int blockMaxs[] = new int[2];
-        FindJunction junction = new FindJunction();
         SeqSpan span = intronSym.getSpan(bioseq);
-        blockMins[0] = span.getMin() - junction.getThreshold();
+        blockMins[0] = span.getMin() - threshold;
         blockMins[1] = span.getMax();
         blockMaxs[0] = span.getMin();
-        blockMaxs[1] = span.getMax() + junction.getThreshold();
+        blockMaxs[1] = span.getMax() + threshold;
         String name;
         boolean currentForward = true;
         SpecificUcscBedSym tempSym; 
-        if(junction.isTwoTracks()){
+        if(twoTracks){
             if(span.isForward())
                 name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
             else
@@ -145,8 +148,8 @@ public class FindJunctionOperator implements Operator{
             map.get(name).setScore(++score);                    
         }
         else{
-            tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-junction.getThreshold(),
-               span.getMax()+junction.getThreshold(), name, 1, currentForward, 0, 0, blockMins, blockMaxs);
+            tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-threshold,
+               span.getMax()+threshold, name, 1, currentForward, 0, 0, blockMins, blockMaxs);
             map.put(name,tempSym);
         }
     }

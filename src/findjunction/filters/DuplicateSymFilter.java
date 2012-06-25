@@ -34,7 +34,6 @@ public class DuplicateSymFilter implements SymmetryFilterI{
 
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
-        FindJunction fJ = new FindJunction();
         if(ss.getSpan(bioseq).getMin() >= (Integer)getParam())
             return true;
         else

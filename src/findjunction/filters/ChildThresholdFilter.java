@@ -16,7 +16,7 @@ import findjunction.FindJunction;
  */
 public class ChildThresholdFilter implements SymmetryFilterI{
 
-    FindJunction fJ = new FindJunction();
+    int threshold;
     
     @Override
     public String getName() {
@@ -25,18 +25,18 @@ public class ChildThresholdFilter implements SymmetryFilterI{
 
     @Override
     public boolean setParam(Object o) {
-        return false;
+        threshold = (Integer)o;
+        return true;
     }
 
     @Override
     public Object getParam() {
-        return null;
+        return threshold;
     }
 
     @Override
     public boolean filterSymmetry(BioSeq bioseq, SeqSymmetry ss) {
         SeqSpan span = ss.getSpan(bioseq);
-        int threshold = fJ.getThreshold();
         if((span.getMax() - span.getMin()) < threshold)
             return false;
         else
