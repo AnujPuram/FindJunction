@@ -38,6 +38,7 @@ public class FindJunction {
     public FindJunction() {
     }
     
+    
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         String home = System.getProperty("user.home");
