@@ -12,6 +12,7 @@ import com.affymetrix.genometryImpl.parsers.FileTypeCategory;
 import com.affymetrix.genometryImpl.symmetry.*;
 import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
+import findjunction.filters.DuplicateSymFilter;
 import findjunction.filters.NoIntronFilter;
 import java.util.*;
 
@@ -24,7 +25,7 @@ public class FindJunctionOperator implements Operator{
     private final int default_threshold = 5;
     private static SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private static SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
-    
+    private static SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
     
     int threshold = default_threshold;
     
@@ -38,13 +39,17 @@ public class FindJunctionOperator implements Operator{
         return "Find Junction";
     }
 
+    public void setFilter(SymmetryFilterI filter){
+        duplicateSymFilter = filter;
+    }
+    
     @Override
     public SeqSymmetry operate(BioSeq bioseq, List<SeqSymmetry> list) {
         TypeContainerAnnot container = new TypeContainerAnnot("test", "bed");
         HashMap<String, SpecificUcscBedSym> map = new HashMap<String , SpecificUcscBedSym>();
         
         for(SeqSymmetry sym : list){
-            if(noIntronFilter.filterSymmetry(bioseq, sym)){
+            if(noIntronFilter.filterSymmetry(bioseq, sym) && duplicateSymFilter.filterSymmetry(bioseq, sym)){
                 updateIntronHashMap(sym , bioseq, map);
             }
         }
@@ -121,15 +126,29 @@ public class FindJunctionOperator implements Operator{
         blockMins[1] = span.getMax();
         blockMaxs[0] = span.getMin();
         blockMaxs[1] = span.getMax() + junction.getThreshold();
-        String name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax();
-        SpecificUcscBedSym tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-junction.getThreshold(),
-            span.getMax()+junction.getThreshold(), name, 1, true, 0, 0, blockMins, blockMaxs);
+        String name;
+        boolean currentForward = true;
+        SpecificUcscBedSym tempSym; 
+        if(junction.isTwoTracks()){
+            if(span.isForward())
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
+            else
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";
+            currentForward = span.isForward();
+        }
+        else{
+            name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
+            currentForward = true;
+        }
         if(map.containsKey(name)){
-            float score = ((SpecificUcscBedSym)(map.get(name))).getScore();
+            float score = map.get(name).getScore();
             map.get(name).setScore(++score);                    
         }
-        else
+        else{
+            tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-junction.getThreshold(),
+               span.getMax()+junction.getThreshold(), name, 1, currentForward, 0, 0, blockMins, blockMaxs);
             map.put(name,tempSym);
+        }
     }
     
 }

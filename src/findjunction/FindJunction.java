@@ -8,6 +8,7 @@ import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.parsers.BedParser;
+import com.affymetrix.genometryImpl.span.SimpleSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symmetry.BAMSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
@@ -15,6 +16,7 @@ import com.affymetrix.genometryImpl.symmetry.SimpleMutableSeqSymmetry;
 import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
 import findjunction.filters.NoIntronFilter;
+import findjunction.filters.DuplicateSymFilter;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,6 +33,8 @@ public class FindJunction {
      * @param args the command line arguments
      */
     private static int threshold;
+    private static boolean twoTracks;
+    private static DuplicateSymFilter duplicateSymFilter = new DuplicateSymFilter();
     public FindJunction() {
     }
     
@@ -38,6 +42,7 @@ public class FindJunction {
         FindJunction fJ = new FindJunction();
         String home = System.getProperty("user.home");
         fJ.setThreshold(5);
+        fJ.setTwoTracks(false);
         String input = "";
         String output = home+"/test2.bed";
         if(args.length % 2 == 0 && args.length>0){
@@ -48,6 +53,16 @@ public class FindJunction {
                     input = args[i+1];
                 else if(args[i].equals("-o"))
                     output = args[i+1];
+                else if(args[i].equals("-t")){
+                    if(args[i+1].equals("true"))
+                        fJ.setTwoTracks(true);
+                    else if(args[i+1].equals("false"))
+                        fJ.setTwoTracks(false);
+                    else{
+                        System.out.println("Invalid input for -t option");
+                        break;
+                    }
+                }
             }
             if(!input.equals(""))
                 fJ.init(input,output);
@@ -77,20 +92,34 @@ public class FindJunction {
        DataOutputStream dos = new DataOutputStream(os);
        List<BioSeq> list = bam.getChromosomeList();
        BedParser parser = new BedParser();
+       SeqSpan currentSpan;
+       List<SeqSymmetry> uniqueSyms = new ArrayList<SeqSymmetry>();
        List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
+       int off = 50000;
        for(int i=0;i<list.size();i++){
-            System.out.println(list.get(i).getID());            
-            List<SeqSymmetry> syms = bam.getChromosome(list.get(i));
-            if(syms.size()>0){
-                SeqSymmetry container =  operator.operate(list.get(i), syms);
-                int children = container.getChildCount();
-                for(int j=0;j<children;j++){
-                    junctions.add(container.getChild(j));
-                }
-            }
-            parser.writeBedFormat(dos, junctions, list.get(i));
-       }    
-    }
+           for(int j=list.get(i).getMin(); j < list.get(i).getMax(); j= j+off){
+               int start =j;
+               int end;
+               if((start + off) < list.get(i).getMax())
+                   end = start + off;
+               else
+                   end = list.get(i).getMax();
+               currentSpan = new SimpleSeqSpan(start, end, list.get(i));
+               List<SeqSymmetry> syms = bam.getRegion(currentSpan);
+               if(syms.size()>0){
+                   duplicateSymFilter.setParam(start);
+                   operator.setFilter(duplicateSymFilter);
+                   SeqSymmetry container =  operator.operate(list.get(i), syms);
+                   int children = container.getChildCount();
+                   for(int k=0;k<children;k++){
+                       junctions.add(container.getChild(k));
+                   }
+               }
+               parser.writeBedFormat(dos, junctions, list.get(i));
+               junctions.clear();
+          }
+      }
+   }    
     
     public int getThreshold(){
         return threshold;
@@ -98,5 +127,13 @@ public class FindJunction {
     
     public void setThreshold(int threshold){
         this.threshold = threshold;
+    }
+    
+    public void setTwoTracks(boolean twoTracks){
+        this.twoTracks = twoTracks;
+    }
+    
+    public boolean isTwoTracks(){
+        return twoTracks;
     }
 }
