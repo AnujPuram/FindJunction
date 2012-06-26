@@ -9,6 +9,7 @@ import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.filter.SymmetryFilterI;
 import com.affymetrix.genometryImpl.operator.Operator;
 import com.affymetrix.genometryImpl.parsers.FileTypeCategory;
+import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.symmetry.*;
 import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
@@ -22,15 +23,19 @@ import java.util.*;
  * @author Anuj
  */
 public class FindJunctionOperator implements Operator{
+    private static final int offset = 100000;
     private static final int default_threshold = 5;
     private static SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private static SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
     private static SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
     private static int threshold = default_threshold;
     private static boolean twoTracks;
-    public FindJunctionOperator(int threshold, boolean twoTracks){
+    private static TwoBit twoBit;
+    private static String residueString;
+    public FindJunctionOperator(int threshold, boolean twoTracks, TwoBit twoBit){
         this.threshold = threshold;
         this.twoTracks = twoTracks;
+        this.twoBit = twoBit;
     }   
     
     @Override
@@ -45,6 +50,10 @@ public class FindJunctionOperator implements Operator{
 
     public void setFilter(SymmetryFilterI filter){
         duplicateSymFilter = filter;
+    }
+    
+    public void setResidueString(String residueString){
+        this.residueString = residueString;
     }
     
     @Override
@@ -131,13 +140,26 @@ public class FindJunctionOperator implements Operator{
         blockMaxs[1] = span.getMax() + threshold;
         String name;
         boolean currentForward = true;
-        SpecificUcscBedSym tempSym; 
+        SpecificUcscBedSym tempSym;
+        int minimum = span.getMin();
+        int maximum = span.getMax();
+        while(minimum > offset)
+            minimum = minimum-offset;
+        while(maximum > offset)
+            maximum = maximum-offset;
+        String leftResidues = residueString.substring(minimum, minimum+2);
+        String rightResidues = residueString.substring(maximum-2,maximum);
         if(twoTracks){
-            if(span.isForward())
+            if(leftResidues.equals("GT") && rightResidues.equals("AG"))
+                currentForward = true;
+            else if(leftResidues.equals("CA") && rightResidues.equals("TC"))
+                currentForward = false;
+            else
+                currentForward = span.isForward();
+            if(currentForward)
                 name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
             else
                 name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";
-            currentForward = span.isForward();
         }
         else{
             name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";

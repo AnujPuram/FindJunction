@@ -11,18 +11,22 @@ import com.affymetrix.genometryImpl.filter.SymmetryFilterI;
 import com.affymetrix.genometryImpl.parsers.BedParser;
 import com.affymetrix.genometryImpl.span.SimpleSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
+import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.symmetry.BAMSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import com.affymetrix.genometryImpl.symmetry.SimpleMutableSeqSymmetry;
 import com.affymetrix.genometryImpl.util.SeqUtils;
+import com.affymetrix.genometryImpl.util.SynonymLookup;
 import findjunction.filters.ChildThresholdFilter;
 import findjunction.filters.NoIntronFilter;
 import findjunction.filters.DuplicateSymFilter;
+import com.affymetrix.igb.IGB;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -44,64 +48,93 @@ public class FindJunction {
         int threshold = 5;
         boolean twoTracks = false;
         String input = "";
-        String output = home+"/test2.bed";
-        if(args.length % 2 == 0 && args.length>0){
-            for(int i=0;i<args.length;i=i+2){
-                if(args[i].equals("-n"))
-                    threshold = Integer.parseInt(args[i+1]);
-                else if(args[i].equals("-i"))
-                    input = args[i+1];
-                else if(args[i].equals("-o"))
-                    output = args[i+1];
-                else if(args[i].equals("-t")){
-                    if(args[i+1].equals("true"))
-                        twoTracks = true;
-                    else if(args[i+1].equals("false"))
-                        twoTracks = false;
-                    else{
-                        System.out.println("Invalid input for -t option");
-                        break;
-                    }
+        String output = "";
+        String twoBit = "";
+        threshold = Integer.parseInt(getArg("-n", args));
+        output = getArg("-o", args);
+        twoBit = getArg("-b", args);
+        if(getArg("-s", args) != null)
+            twoTracks = true;
+        for(int i=0;i<args.length;i++){
+            if(!args[i].startsWith("-")){
+                input = args[i];
+                break;
+            }
+            if(args[i].equals("-n") || args[i].equals("-o") || args[i].equals("-b"))
+                i++;
+        }
+        fJ.init(input, output, threshold, twoTracks, twoBit);
+    }
+    
+    public static String getArg(String label, String[] args) {
+        String to_return = null;
+        boolean got_it = false;
+        if (label != null && args != null) {
+            for (String item : args) {
+                if (got_it) {
+                    to_return = item;
+                    break;
+                }
+                if (item.equals(label)) {
+                    got_it = true;
                 }
             }
-            if(!input.equals(""))
-                fJ.init(input, output, threshold, twoTracks);
-            else
-                System.out.println("Please give the input file path");
         }
-        else
-            System.out.println("Invalid Number of Arguments");
-        
-       }
+        if (got_it && to_return == null) {
+            to_return = "true";
+        }
+        return to_return;
+    }
     
     //This is the method where the control of the program gets started
-    public void init(String input, String output, int threshold, boolean twoTracks) throws URISyntaxException, Exception{
-        if(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:"))
-            convertBAMToBed(input , output, threshold, twoTracks);
-        else
-            convertBAMToBed("file:"+input , output, threshold, twoTracks);
-        
+    public void init(String input, String output, int threshold, boolean twoTracks, String twoBit) throws URISyntaxException, Exception{
+                if(!(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:")))
+            input = "file:"+input;
+        if(!(twoBit.startsWith("file:") || twoBit.startsWith("http:") || twoBit.startsWith("ftp:")))
+            twoBit = "file:"+twoBit;
+        convertBAMToBed(input , output, threshold, twoTracks, twoBit);        
     }
     
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
-    public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks) throws URISyntaxException, Exception{
+    public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks, String twoBit) throws URISyntaxException, Exception{
         URI uri = new URI(input);
-        FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks);
-        BAM bam = new BAM(uri,"small_hits",new AnnotatedSeqGroup("small_hits")); 
+        URI twoBitURI = new URI(twoBit);
+        InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
+        SynonymLookup.getChromosomeLookup().loadSynonyms(isreader, true) ;
+        AnnotatedSeqGroup group = new AnnotatedSeqGroup("Find Junctions");
+        String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().indexOf("."));
+        String twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().indexOf("."));
+        BAM bam = new BAM(uri,fileName,group);
+        TwoBit twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
+        FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile);
         List<BioSeq> list = bam.getChromosomeList();
         BedParser parser = new BedParser();
-        OutputStream os  = new FileOutputStream(output);
-        DataOutputStream dos = new DataOutputStream(os);
+        OutputStream os;
+        DataOutputStream dos;
+        if(output != null){    
+            os  = new FileOutputStream(output);
+            dos = new DataOutputStream(os);
+        }
+        else{
+            dos = null;
+            os = null;
+        }
+        if(dos == null){
+            System.out.println("Chromosome\tName\tStart\tEnd\tStrand\t");
+        }
         for(BioSeq bioSeq : list)
-            writeJunctions(bioSeq, parser, bam, operator, dos);
-        dos.close();
-        os.close();
+            writeJunctions(bioSeq, parser, bam, twoBitFile, operator, dos);
+        if(dos != null && os != null){
+            dos.close();
+            os.close();
+        }
     }    
     
-    public void writeJunctions(BioSeq bioseq, BedParser parser, BAM bam, FindJunctionOperator operator, DataOutputStream dos) throws FileNotFoundException, Exception{
+    public void writeJunctions(BioSeq bioseq, BedParser parser, BAM bam, TwoBit twoBitFile, FindJunctionOperator operator, DataOutputStream dos) throws FileNotFoundException, Exception{
         SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
         SeqSpan currentSpan;
         List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
+        List<BioSeq> seq = twoBitFile.getChromosomeList();
         for(int j=bioseq.getMin(); j < bioseq.getMax(); j= j+offset){
             int start =j;
             int end;
@@ -111,14 +144,21 @@ public class FindJunction {
                 end = bioseq.getMax();
             currentSpan = new SimpleSeqSpan(start, end, bioseq);
             List<SeqSymmetry> syms = bam.getRegion(currentSpan);
+            //synonyms = lookup.getSynonyms(bioseq.getID());
             if(syms.size()>0){
                 duplicateSymFilter.setParam(start);
                 operator.setFilter(duplicateSymFilter);
+                operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
                 SeqSymmetry container =  operator.operate(bioseq, syms);
                 int children = container.getChildCount();
                 for(int k=0;k<children;k++)
                     junctions.add(container.getChild(k));
-                parser.writeBedFormat(dos, junctions, bioseq);
+                if(dos != null)
+                    parser.writeBedFormat(dos, junctions, bioseq);
+                else{
+                    for(SeqSymmetry sym : junctions)
+                        System.out.println(bioseq.getID()+"\t"+sym.toString()+"\t"+sym.getSpan(bioseq).getMin() +"\t"+sym.getSpan(bioseq).getMax());
+                }
                 junctions.clear();
             }            
         }
