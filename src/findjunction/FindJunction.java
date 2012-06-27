@@ -37,17 +37,22 @@ public class FindJunction {
     /**
      * @param args the command line arguments
      */
+    private static final int default_threshold = 5;
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         String home = System.getProperty("user.home");
-        int threshold = 5;
+        int threshold = default_threshold;
         boolean twoTracks = false;
+        boolean uniqueness = false;
         String input = "";
         String output = "";
         String twoBit = "";
         String thresh = getArg("-n", args);
+        String unique = getArg("-u", args);
         if(thresh != null)
             threshold = Integer.parseInt(thresh);
+        if(unique != null)
+            uniqueness = true;
         output = getArg("-o", args);
         twoBit = getArg("-b", args);
         if(getArg("-s", args) != null)
@@ -60,7 +65,7 @@ public class FindJunction {
             if(args[i].equals("-n") || args[i].equals("-o") || args[i].equals("-b"))
                 i++;
         }
-        fJ.init(input, output, threshold, twoTracks, twoBit);
+        fJ.init(input, output, threshold, twoTracks, twoBit, uniqueness);
     }
     
     public static String getArg(String label, String[] args) {
@@ -84,16 +89,16 @@ public class FindJunction {
     }
     
     //This is the method where the control of the program gets started
-    public void init(String input, String output, int threshold, boolean twoTracks, String twoBit) throws URISyntaxException, Exception{
+    public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
                 if(!(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:")))
             input = "file:"+input;
         if(!(twoBit.startsWith("file:") || twoBit.startsWith("http:") || twoBit.startsWith("ftp:")))
             twoBit = "file:"+twoBit;
-        convertBAMToBed(input , output, threshold, twoTracks, twoBit);        
+        convertBAMToBed(input , output, threshold, twoTracks, twoBit, uniqueness);        
     }
     
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
-    public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks, String twoBit) throws URISyntaxException, Exception{
+    public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         URI uri = new URI(input);
         URI twoBitURI = new URI(twoBit);
         InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
@@ -103,7 +108,7 @@ public class FindJunction {
         String twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
         BAM bam = new BAM(uri,fileName,group);
         TwoBit twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
-        FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile);
+        FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile, uniqueness);
         List<BioSeq> list = bam.getChromosomeList();
         BedParser parser = new BedParser();
         OutputStream os;

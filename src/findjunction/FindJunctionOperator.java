@@ -15,6 +15,7 @@ import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
 import findjunction.filters.DuplicateSymFilter;
 import findjunction.filters.NoIntronFilter;
+import findjunction.filters.UniqueLocationFilter;
 import java.util.*;
 
 
@@ -28,14 +29,16 @@ public class FindJunctionOperator implements Operator{
     private static SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private static SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
     private static SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
+    private static SymmetryFilterI uniqueLocationFilter = new UniqueLocationFilter();
     private static int threshold = default_threshold;
-    private static boolean twoTracks;
+    private static boolean twoTracks, uniqueness;
     private static TwoBit twoBit;
     private static String residueString;
-    public FindJunctionOperator(int threshold, boolean twoTracks, TwoBit twoBit){
+    public FindJunctionOperator(int threshold, boolean twoTracks, TwoBit twoBit, boolean uniqueness){
         this.threshold = threshold;
         this.twoTracks = twoTracks;
         this.twoBit = twoBit;
+        this.uniqueness = uniqueness;
     }   
     
     @Override
@@ -62,9 +65,11 @@ public class FindJunctionOperator implements Operator{
         HashMap<String, SpecificUcscBedSym> map = new HashMap<String , SpecificUcscBedSym>();
         
         for(SeqSymmetry sym : list){
-            if(noIntronFilter.filterSymmetry(bioseq, sym) && duplicateSymFilter.filterSymmetry(bioseq, sym)){
+            if(noIntronFilter.filterSymmetry(bioseq, sym) && duplicateSymFilter.filterSymmetry(bioseq, sym) && 
+                    (!uniqueness) || (uniqueness && uniqueLocationFilter.filterSymmetry(bioseq, sym))){
                 updateIntronHashMap(sym , bioseq, map);
             }
+
         }
         Collection<SpecificUcscBedSym> symmetrySet = map.values();
         Object syms[] = symmetrySet.toArray();
