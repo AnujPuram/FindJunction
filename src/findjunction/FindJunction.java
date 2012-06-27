@@ -37,11 +37,6 @@ public class FindJunction {
     /**
      * @param args the command line arguments
      */
-    private static final int offset = 100000; 
-    public FindJunction() {
-    }
-    
-    
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         String home = System.getProperty("user.home");
@@ -50,7 +45,9 @@ public class FindJunction {
         String input = "";
         String output = "";
         String twoBit = "";
-        threshold = Integer.parseInt(getArg("-n", args));
+        String thresh = getArg("-n", args);
+        if(thresh != null)
+            threshold = Integer.parseInt(thresh);
         output = getArg("-o", args);
         twoBit = getArg("-b", args);
         if(getArg("-s", args) != null)
@@ -102,8 +99,8 @@ public class FindJunction {
         InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
         SynonymLookup.getChromosomeLookup().loadSynonyms(isreader, true) ;
         AnnotatedSeqGroup group = new AnnotatedSeqGroup("Find Junctions");
-        String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().indexOf("."));
-        String twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().indexOf("."));
+        String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().lastIndexOf("."));
+        String twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
         BAM bam = new BAM(uri,fileName,group);
         TwoBit twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
         FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile);
@@ -116,11 +113,8 @@ public class FindJunction {
             dos = new DataOutputStream(os);
         }
         else{
-            dos = null;
+            dos = new DataOutputStream(System.out);
             os = null;
-        }
-        if(dos == null){
-            System.out.println("Chromosome\tName\tStart\tEnd\tStrand\t");
         }
         for(BioSeq bioSeq : list)
             writeJunctions(bioSeq, parser, bam, twoBitFile, operator, dos);
@@ -135,11 +129,11 @@ public class FindJunction {
         SeqSpan currentSpan;
         List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
         List<BioSeq> seq = twoBitFile.getChromosomeList();
-        for(int j=bioseq.getMin(); j < bioseq.getMax(); j= j+offset){
+        for(int j=bioseq.getMin(); j < bioseq.getMax(); j= j+operator.offset){
             int start =j;
             int end;
-            if((start + offset) < bioseq.getMax())
-                end = start + offset;
+            if((start + operator.offset) < bioseq.getMax())
+                end = start + operator.offset;
             else
                 end = bioseq.getMax();
             currentSpan = new SimpleSeqSpan(start, end, bioseq);
@@ -151,14 +145,10 @@ public class FindJunction {
                 operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
                 SeqSymmetry container =  operator.operate(bioseq, syms);
                 int children = container.getChildCount();
-                for(int k=0;k<children;k++)
+                for(int k=0;k<children;k++){
                     junctions.add(container.getChild(k));
-                if(dos != null)
-                    parser.writeBedFormat(dos, junctions, bioseq);
-                else{
-                    for(SeqSymmetry sym : junctions)
-                        System.out.println(bioseq.getID()+"\t"+sym.toString()+"\t"+sym.getSpan(bioseq).getMin() +"\t"+sym.getSpan(bioseq).getMax());
                 }
+                parser.writeBedFormat(dos, junctions, bioseq);
                 junctions.clear();
             }            
         }
