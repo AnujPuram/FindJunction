@@ -152,6 +152,8 @@ public class FindJunctionOperator implements Operator{
             minimum = minimum-offset;
         while(maximum > offset)
             maximum = maximum-offset;
+        if(maximum < minimum)
+            maximum = maximum+offset;
         String leftResidues = residueString.substring(minimum, minimum+2);
         String rightResidues = residueString.substring(maximum-2,maximum);
         if(twoTracks){
