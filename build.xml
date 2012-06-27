@@ -10,6 +10,17 @@
 <project name="FindJunction" default="default" basedir=".">
     <description>Builds, tests, and runs the project FindJunction.</description>
     <import file="nbproject/build-impl.xml"/>
+    <target depends="jar" description="Builds distributable jar" name="release">
+        <jar jarfile="${dist.dir}/FindJunction_exe.jar" update="false">
+            <manifest>
+                <attribute name="Main-Class" value="findjunction.FindJunction"/>
+            </manifest>
+            <zipgroupfileset file="${dist.jar}" />
+            <zipgroupfileset dir="${dist.dir}/lib">
+		<include name="*.jar"/>
+            </zipgroupfileset>
+        </jar>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 
