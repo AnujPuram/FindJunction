@@ -138,6 +138,7 @@ public class FindJunctionOperator implements Operator{
     private static void addToMap(SeqSymmetry intronSym , HashMap<String, SpecificUcscBedSym> map, BioSeq bioseq){
         int blockMins[] = new int[2];
         int blockMaxs[] = new int[2];
+        String rightResidues,leftResidues;
         SeqSpan span = intronSym.getSpan(bioseq);
         blockMins[0] = span.getMin() - threshold;
         blockMins[1] = span.getMax();
@@ -154,9 +155,9 @@ public class FindJunctionOperator implements Operator{
             maximum = maximum-offset;
         if(maximum < minimum)
             maximum = maximum+offset;
-        String leftResidues = residueString.substring(minimum, minimum+2);
-        String rightResidues = residueString.substring(maximum-2,maximum);
-        if(twoTracks){
+        if(!twoTracks){
+            leftResidues = residueString.substring(minimum, minimum+2);
+            rightResidues = residueString.substring(maximum-2,maximum);
             if(leftResidues.equals("GT") && rightResidues.equals("AG"))
                 currentForward = true;
             else if(leftResidues.equals("CA") && rightResidues.equals("TC"))
@@ -169,8 +170,11 @@ public class FindJunctionOperator implements Operator{
                 name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";
         }
         else{
-            name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
-            currentForward = true;
+            currentForward = span.isForward();
+            if(currentForward)
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
+            else
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";           
         }
         if(map.containsKey(name)){
             float score = map.get(name).getScore();

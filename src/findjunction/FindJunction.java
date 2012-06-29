@@ -57,8 +57,17 @@ public class FindJunction {
             uniqueness = true;
         output = getArg("-o", args);
         twoBit = getArg("-b", args);
-        if(getArg("-s", args) != null)
+        if((getArg("-s", args) != null) && (getArg("-b" , args) != null)){
+            System.out.println("Both -s and -b cannot be given together");
+            return;
+        }
+        if((getArg("-s", args) == null) && (getArg("-b", args) == null)){
+            System.out.println("Provide either -s or -b option to decide strands");
+        }
+        if(getArg("-s", args) != null){
             twoTracks = true;
+            twoBit = null;
+        }
         for(int i=0;i<args.length;i++){
             if(!args[i].startsWith("-")){
                 input = args[i];
@@ -92,24 +101,31 @@ public class FindJunction {
     
     //This is the method where the control of the program gets started
     public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
-                if(!(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:")))
+        if(!(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:")))
             input = "file:"+input;
-        if(!(twoBit.startsWith("file:") || twoBit.startsWith("http:") || twoBit.startsWith("ftp:")))
-            twoBit = "file:"+twoBit;
+        if(twoBit != null){
+            if(!(twoBit.startsWith("file:") || twoBit.startsWith("http:") || twoBit.startsWith("ftp:")))
+                twoBit = "file:"+twoBit;
+        }
         convertBAMToBed(input , output, threshold, twoTracks, twoBit, uniqueness);        
     }
     
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         URI uri = new URI(input);
-        URI twoBitURI = new URI(twoBit);
+        URI twoBitURI;
+        String twoBitFileName = null;
+        TwoBit twoBitFile = null;
         InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
         SynonymLookup.getChromosomeLookup().loadSynonyms(isreader, true) ;
         AnnotatedSeqGroup group = new AnnotatedSeqGroup("Find Junctions");
         String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().lastIndexOf("."));
-        String twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
         BAM bam = new BAM(uri,fileName,group);
-        TwoBit twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
+        if(twoBit != null){
+            twoBitURI = new URI(twoBit);
+            twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
+            twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
+        }
         FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile, uniqueness);
         List<BioSeq> list = bam.getChromosomeList();
         BedParser parser = new BedParser();
@@ -137,7 +153,6 @@ public class FindJunction {
         SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
         SeqSpan currentSpan, nextSpan;
         List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
-        List<BioSeq> seq = twoBitFile.getChromosomeList();
         for(int j=bioseq.getMin(); j < bioseq.getMax(); j= j+operator.offset){
             int start =j;
             int end;
@@ -146,11 +161,15 @@ public class FindJunction {
             else
                 end = bioseq.getMax();
             currentSpan = new SimpleSeqSpan(start, end, bioseq);
-            if((start+operator.offset) < bioseq.getMax()){
-                if((end+operator.offset) < bioseq.getMax())    
-                    nextSpan = new SimpleSeqSpan(start + operator.offset, end + operator.offset, bioseq);
-                else
-                    nextSpan = new SimpleSeqSpan(start + operator.offset, bioseq.getMax(), bioseq);
+            if(twoBitFile != null){
+                if((start+operator.offset) < bioseq.getMax()){
+                    if((end+operator.offset) < bioseq.getMax())    
+                        nextSpan = new SimpleSeqSpan(start + operator.offset, end + operator.offset, bioseq);
+                    else
+                        nextSpan = new SimpleSeqSpan(start + operator.offset, bioseq.getMax(), bioseq);
+                }
+                else 
+                    nextSpan = null;
             }
             else
                 nextSpan = null;
@@ -159,10 +178,14 @@ public class FindJunction {
             if(syms.size()>0){
                 duplicateSymFilter.setParam(start);
                 operator.setFilter(duplicateSymFilter);
-                if(nextSpan != null)
-                    operator.setResidueString((twoBitFile.getRegionResidues(currentSpan)) + (twoBitFile.getRegionResidues(nextSpan)));
+                if(twoBitFile != null){
+                    if(nextSpan != null)
+                        operator.setResidueString((twoBitFile.getRegionResidues(currentSpan)) + (twoBitFile.getRegionResidues(nextSpan)));
+                    else
+                        operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
+                }
                 else
-                    operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
+                    operator.setResidueString(null);
                 SeqSymmetry container =  operator.operate(bioseq, syms);
                 int children = container.getChildCount();
                 for(int k=0;k<children;k++){
