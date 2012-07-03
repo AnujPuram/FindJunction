@@ -145,7 +145,7 @@ public class FindJunctionOperator implements Operator{
         blockMaxs[0] = span.getMin();
         blockMaxs[1] = span.getMax() + threshold;
         String name;
-        boolean currentForward = true;
+        boolean currentForward = false;
         SpecificUcscBedSym tempSym;
         int minimum = span.getMin();
         int maximum = span.getMax();
@@ -160,10 +160,8 @@ public class FindJunctionOperator implements Operator{
             rightResidues = residueString.substring(maximum-2,maximum);
             if(leftResidues.equals("GT") && rightResidues.equals("AG"))
                 currentForward = true;
-            else if(leftResidues.equals("CA") && rightResidues.equals("TC"))
+            else if(leftResidues.equals("CT") && rightResidues.equals("AC"))
                 currentForward = false;
-            else
-                currentForward = span.isForward();
             if(currentForward)
                 name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
             else

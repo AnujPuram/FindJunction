@@ -56,18 +56,19 @@ public class FindJunction {
         if(unique != null)
             uniqueness = true;
         output = getArg("-o", args);
-        twoBit = getArg("-b", args);
         if((getArg("-s", args) != null) && (getArg("-b" , args) != null)){
             System.out.println("Both -s and -b cannot be given together");
             return;
         }
         if((getArg("-s", args) == null) && (getArg("-b", args) == null)){
             System.out.println("Provide either -s or -b option to decide strands");
+            return;
         }
+        twoBit = getArg("-b", args);
         if(getArg("-s", args) != null){
             twoTracks = true;
             twoBit = null;
-        }
+        }        
         for(int i=0;i<args.length;i++){
             if(!args[i].startsWith("-")){
                 input = args[i];
