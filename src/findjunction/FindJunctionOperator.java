@@ -34,6 +34,7 @@ public class FindJunctionOperator implements Operator{
     private static boolean twoTracks, uniqueness;
     private static TwoBit twoBit;
     private static String residueString;
+    private static int random = 1;
     public FindJunctionOperator(int threshold, boolean twoTracks, TwoBit twoBit, boolean uniqueness){
         this.threshold = threshold;
         this.twoTracks = twoTracks;
@@ -130,7 +131,8 @@ public class FindJunctionOperator implements Operator{
             intronSym = SeqUtils.getIntronSym(sym, bioseq);
             for(Integer i : childIntronIndices){
                 intronChild = intronSym.getChild(i);
-                addToMap(intronChild, map, bioseq);
+                if(intronChild != null)
+                    addToMap(intronChild, map, bioseq);
             }
         }
     }
@@ -138,7 +140,10 @@ public class FindJunctionOperator implements Operator{
     private static void addToMap(SeqSymmetry intronSym , HashMap<String, SpecificUcscBedSym> map, BioSeq bioseq){
         int blockMins[] = new int[2];
         int blockMaxs[] = new int[2];
-        String rightResidues,leftResidues;
+        boolean canonical = true;
+        int positiveScore = 0;
+        int negativeScore = 0;
+        String rightResidues= "",leftResidues= "";
         SeqSpan span = intronSym.getSpan(bioseq);
         blockMins[0] = span.getMin() - threshold;
         blockMins[1] = span.getMax();
@@ -158,42 +163,81 @@ public class FindJunctionOperator implements Operator{
         if(!twoTracks){
             leftResidues = residueString.substring(minimum, minimum+2);
             rightResidues = residueString.substring(maximum-2,maximum);
-            if(leftResidues.equals("GT") && rightResidues.equals("AG"))
+            if(leftResidues.equals("GT") && rightResidues.equals("AG")){
                 currentForward = true;
-            else if(leftResidues.equals("CT") && rightResidues.equals("AC"))
+                canonical = true;
+            }
+            else if(leftResidues.equals("CA") && rightResidues.equals("TC")){
                 currentForward = false;
+                canonical = true;
+            }
+            else{
+                canonical = false;
+                currentForward = span.isForward();
+            }
             if(currentForward)
-                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":";
             else
-                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":";
         }
         else{
             currentForward = span.isForward();
             if(currentForward)
-                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":+";
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":";
             else
-                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":-";           
+                name = "J:"+bioseq.getID()+":"+span.getMin()+"-"+span.getMax()+":";           
         }
-        if(map.containsKey(name)){
-            float score = map.get(name).getScore();
-            map.get(name).setScore(++score);                    
+        String key = name;
+        if(map.containsKey(key)){
+            map.get(key).updateScore(currentForward);
         }
         else{
             tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-threshold,
-               span.getMax()+threshold, name, 1, currentForward, 0, 0, blockMins, blockMaxs);
-            map.put(name,tempSym);
+               span.getMax()+threshold, name, 1, currentForward, 0, 0, blockMins, blockMaxs, currentForward?1:0, currentForward?0:1, canonical);
+            map.put(key,tempSym);
         }
     }
     
 }
 class SpecificUcscBedSym extends UcscBedSym{
     
+    int positiveScore, negativeScore;
+    float localScore = 1;
+    boolean canonical;
     public SpecificUcscBedSym(String type, BioSeq seq, int txMin, int txMax, String name, float score,boolean forward, 
-            int cdsMin, int cdsMax, int[] blockMins, int[] blockMaxs){
+            int cdsMin, int cdsMax, int[] blockMins, int[] blockMaxs, int positiveScore, int negativeScore, boolean canonical){
         super(type, seq, txMin, txMax, name, score, forward, cdsMin, cdsMax, blockMins, blockMaxs);
+        this.positiveScore = positiveScore;
+        this.negativeScore = negativeScore;
+        this.canonical = canonical;
     }
     
-    public void setScore(float score){
-        this.score = score;
+    public void updateScore(boolean isForward){
+       localScore++;
+        if(!canonical){
+            if(isForward)
+                this.positiveScore++;
+            else
+               this.negativeScore++;
+        }
     }
+    @Override
+     public float getScore(){
+        return localScore;
+     }
+    
+     @Override
+     public String getName(){
+         return getID();
+     }
+     
+     @Override
+     public String getID(){
+         return super.getID() + (isForward()? "+" : "-");
+     }
+     
+     @Override
+     public boolean isForward(){
+         return canonical ? super.isForward() : positiveScore > negativeScore? true: false;
+     }
 }
