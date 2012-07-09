@@ -161,6 +161,10 @@ public class FindJunctionOperator implements Operator{
         if(maximum < minimum)
             maximum = maximum+offset;
         if(!twoTracks){
+            if(minimum >= residueString.length() || maximum >= residueString.length()){
+                for(int j=residueString.length();j<maximum;j++)
+                    residueString = residueString.concat("-");
+            }
             leftResidues = residueString.substring(minimum, minimum+2);
             rightResidues = residueString.substring(maximum-2,maximum);
             if(leftResidues.equals("GT") && rightResidues.equals("AG")){

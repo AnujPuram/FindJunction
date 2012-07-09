@@ -144,6 +144,8 @@ public class FindJunction {
             totalLength = totalLength + bioseq.getLength(); 
         for(BioSeq bioSeq : list)
             writeJunctions(bioSeq, parser, bam, twoBitFile, operator, dos);
+        if(isreader  != null)
+            isreader.close();
         if(dos != null && os != null){
             dos.close();
             os.close();
