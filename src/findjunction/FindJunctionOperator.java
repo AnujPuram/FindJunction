@@ -171,7 +171,7 @@ public class FindJunctionOperator implements Operator{
                 currentForward = true;
                 canonical = true;
             }
-            else if(leftResidues.equals("CA") && rightResidues.equals("TC")){
+            else if(leftResidues.equals("CT") && rightResidues.equals("AC")){
                 currentForward = false;
                 canonical = true;
             }
