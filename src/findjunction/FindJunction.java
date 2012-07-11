@@ -47,7 +47,15 @@ public class FindJunction {
         int threshold = default_threshold;
         boolean twoTracks = false;
         boolean uniqueness = false;
-        String input = "";
+        String input = args[args.length-1];
+        if(input.lastIndexOf(".") < 0){
+            System.out.println("Last Argument should be an input BAM File");
+            return;
+        }
+        if(!(input.substring(input.lastIndexOf(".")+1, input.length()).equals("bam"))){
+            System.out.println("Last Argument should be an input BAM File");
+            return;
+        }
         String output = "";
         String twoBit = "";
         String thresh = getArg("-n", args);
@@ -70,14 +78,6 @@ public class FindJunction {
             twoTracks = true;
             twoBit = null;
         }        
-        for(int i=0;i<args.length;i++){
-            if(!args[i].startsWith("-")){
-                input = args[i];
-                break;
-            }
-            if(args[i].equals("-n") || args[i].equals("-o") || args[i].equals("-b"))
-                i++;
-        }
         fJ.init(input, output, threshold, twoTracks, twoBit, uniqueness);
     }
     
