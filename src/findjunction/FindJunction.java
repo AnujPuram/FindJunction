@@ -42,6 +42,7 @@ public class FindJunction {
     int absPercentage = 0;
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
+        File directory = new File(".");
         String home = System.getProperty("user.home");
         int threshold = default_threshold;
         boolean twoTracks = false;
@@ -102,18 +103,36 @@ public class FindJunction {
     
     //This is the method where the control of the program gets started
     public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
-        if(!(input.startsWith("file:") || input.startsWith("http:") || input.startsWith("ftp:")))
-            input = "file:"+input;
-        if(twoBit != null){
-            if(!(twoBit.startsWith("file:") || twoBit.startsWith("http:") || twoBit.startsWith("ftp:")))
-                twoBit = "file:"+twoBit;
+        File inputFile, twoBitFile;
+        URI inputURI, twoBitURI = null; 
+        if(!(input.startsWith("file:") && !(input.startsWith("http:")) && !(input.startsWith("ftp:")))){
+            inputFile = new File(input);
+            inputFile = inputFile.getAbsoluteFile();
+            inputURI = inputFile.toURI();
         }
-        convertBAMToBed(input , output, threshold, twoTracks, twoBit, uniqueness);        
+        else
+            inputURI = new URI(input);
+        if(twoBit != null){
+            if(!(twoBit.startsWith("file:") && !(twoBit.startsWith("http:")) && !(twoBit.startsWith("ftp:")))){
+                twoBitFile = new File(twoBit);
+                twoBitFile = twoBitFile.getAbsoluteFile();
+                twoBitURI = twoBitFile.toURI();
+            }
+            else
+                twoBitURI = new URI(twoBit);
+                
+        }
+        if(output != null){
+            File outputFile = new File(output);
+            outputFile = outputFile.getAbsoluteFile();
+            output = outputFile.getAbsolutePath();
+        }
+        convertBAMToBed(inputURI , output, threshold, twoTracks, twoBitURI, uniqueness);        
     }
     
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
-    public void convertBAMToBed(String input , String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
-        URI uri = new URI(input);
+    public void convertBAMToBed(URI input , String output, int threshold, boolean twoTracks, URI twoBit, boolean uniqueness) throws URISyntaxException, Exception{
+        URI uri = input;
         URI twoBitURI;
         String twoBitFileName = null;
         TwoBit twoBitFile = null;
@@ -123,7 +142,7 @@ public class FindJunction {
         String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().lastIndexOf("."));
         BAM bam = new BAM(uri,fileName,group);
         if(twoBit != null){
-            twoBitURI = new URI(twoBit);
+            twoBitURI = twoBit;
             twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
             twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
         }
@@ -201,6 +220,8 @@ public class FindJunction {
             if((int)Math.abs(percentage) > (absPercentage + 9)){
                 absPercentage = (int)Math.abs(percentage);
                 System.out.println(absPercentage+"% completed.....");
+                if(absPercentage == 100)
+                    System.exit(0);
             }
         }
     }
