@@ -42,5 +42,4 @@ public class ChildThresholdFilter implements SymmetryFilterI{
         else
             return true;
     }
-    
 }

@@ -7,26 +7,19 @@ package findjunction;
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
-import com.affymetrix.genometryImpl.filter.SymmetryFilterI;
 import com.affymetrix.genometryImpl.parsers.BedParser;
-import com.affymetrix.genometryImpl.span.SimpleSeqSpan;
+import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
+import com.affymetrix.genometryImpl.symloader.BAM.SeqSymmetryIterator;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
-import com.affymetrix.genometryImpl.symmetry.BAMSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
-import com.affymetrix.genometryImpl.symmetry.SimpleMutableSeqSymmetry;
-import com.affymetrix.genometryImpl.util.SeqUtils;
 import com.affymetrix.genometryImpl.util.SynonymLookup;
-import findjunction.filters.ChildThresholdFilter;
-import findjunction.filters.NoIntronFilter;
-import findjunction.filters.DuplicateSymFilter;
 import com.affymetrix.igb.IGB;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  *
@@ -37,9 +30,11 @@ public class FindJunction {
     /**
      * @param args the command line arguments
      */
-    private static final int default_threshold = 5;
+    private static final int default_threshold = 5; // maybe make all caps
     float totalLength = 0,currentLength = 0;
     int absPercentage = 0;
+    public static boolean DEBUG = true;
+    
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         File directory = new File(".");
@@ -48,29 +43,35 @@ public class FindJunction {
         boolean twoTracks = false;
         boolean uniqueness = false;
         String input = args[args.length-1];
+        String last_argument_message = "Last argument should be a comma-separated list of one or more BAM files";
         if(input.lastIndexOf(".") < 0){
-            System.out.println("Last Argument should be an input BAM File");
-            return;
+            System.err.println(last_argument_message);
+            System.exit(1);   
         }
         if(!(input.substring(input.lastIndexOf(".")+1, input.length()).equals("bam"))){
-            System.out.println("Last Argument should be an input BAM File");
-            return;
+            System.err.println(last_argument_message);
+            System.exit(1);
         }
         String output = "";
         String twoBit = "";
         String thresh = getArg("-n", args);
         String unique = getArg("-u", args);
+        String debug_option = getArg("-d",args);
+        if (debug_option != null) {
+            DEBUG = true;
+        }
+        
         if(thresh != null)
             threshold = Integer.parseInt(thresh);
         if(unique != null)
             uniqueness = true;
         output = getArg("-o", args);
         if((getArg("-s", args) != null) && (getArg("-b" , args) != null)){
-            System.out.println("Both -s and -b cannot be given together");
+            System.err.println("Both -s and -b cannot be given together");
             return;
         }
         if((getArg("-s", args) == null) && (getArg("-b", args) == null)){
-            System.out.println("Provide either -s or -b option to decide strands");
+            System.err.println("Provide either -s or -b option to decide strands");
             return;
         }
         twoBit = getArg("-b", args);
@@ -148,7 +149,6 @@ public class FindJunction {
         }
         FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile, uniqueness);
         List<BioSeq> list = bam.getChromosomeList();
-        BedParser parser = new BedParser();
         OutputStream os;
         DataOutputStream dos;
         if(output != null){    
@@ -162,7 +162,7 @@ public class FindJunction {
         for(BioSeq bioseq : list)
             totalLength = totalLength + bioseq.getLength(); 
         for(BioSeq bioSeq : list)
-            writeJunctions(bioSeq, parser, bam, twoBitFile, operator, dos);
+            writeJunctions(bioSeq, bam, uri, twoBitFile, operator, dos);
         if(isreader  != null)
             isreader.close();
         if(dos != null && os != null){
@@ -171,58 +171,45 @@ public class FindJunction {
         }
     }    
     
-    public void writeJunctions(BioSeq bioseq, BedParser parser, BAM bam, TwoBit twoBitFile, FindJunctionOperator operator, DataOutputStream dos) throws FileNotFoundException, Exception{
-        SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
-        SeqSpan currentSpan, nextSpan;
-        List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
-        for(int j=bioseq.getMin(); j < bioseq.getMax(); j= j+operator.offset){
-            int start =j;
-            int end;
-            if((start + operator.offset) < bioseq.getMax())
-                end = start + operator.offset;
-            else
-                end = bioseq.getMax();
-            currentSpan = new SimpleSeqSpan(start, end, bioseq);
-            if(twoBitFile != null){
-                if((start+operator.offset) < bioseq.getMax()){
-                    if((end+operator.offset) < bioseq.getMax())    
-                        nextSpan = new SimpleSeqSpan(start + operator.offset, end + operator.offset, bioseq);
-                    else
-                        nextSpan = new SimpleSeqSpan(start + operator.offset, bioseq.getMax(), bioseq);
+    public void writeJunctions(BioSeq bioseq, BAM bam, URI bamURI, TwoBit twoBitFile, FindJunctionOperator operator, DataOutputStream dos) throws FileNotFoundException, Exception {
+        SeqSpan currentSpan = new SimpleMutableSeqSpan(bioseq.getMin(), bioseq.getMax(), bioseq);
+        List<SeqSymmetry> syms = new ArrayList<SeqSymmetry>();
+        SeqSymmetryIterator iter = bam.getIterator(bioseq, bioseq.getMin(), bioseq.getMax(), false);
+        if(twoBitFile != null)
+            operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
+        if (iter != null) {
+            System.err.print(bioseq.getID()+": ");
+            int currentProgress = (int)(iter.getProgress()*100);
+            int prevProgress = currentProgress;
+            while (iter.hasNext()) {
+                syms.add(iter.next());
+                if (syms.size() >= operator.offset) {
+                    write(bioseq, syms, operator, dos);
+                    currentProgress = (int)(iter.getProgress()*100);
+                    for(int i=0; i<currentProgress - prevProgress; i++){
+                        System.err.print("|");
+                    }
+                    prevProgress = currentProgress;
+                    syms.clear();
                 }
-                else 
-                    nextSpan = null;
             }
-            else
-                nextSpan = null;
-            currentLength = currentLength + (end - start);
-            List<SeqSymmetry> syms = bam.getRegion(currentSpan);
-            if(syms.size()>0){
-                duplicateSymFilter.setParam(start);
-                operator.setFilter(duplicateSymFilter);
-                if(twoBitFile != null){
-                    if(nextSpan != null)
-                        operator.setResidueString((twoBitFile.getRegionResidues(currentSpan)) + (twoBitFile.getRegionResidues(nextSpan)));
-                    else
-                        operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
-                }
-                else
-                    operator.setResidueString(null);
-                SeqSymmetry container =  operator.operate(bioseq, syms);
-                int children = container.getChildCount();
-                for(int k=0;k<children;k++){
-                    junctions.add(container.getChild(k));
-                }
-                parser.writeBedFormat(dos, junctions, bioseq);
-                junctions.clear();
+            write(bioseq, syms, operator, dos);
+            for(int i=0; i<currentProgress - prevProgress; i++){
+                System.err.print("|");
             }
-            float percentage = (currentLength/totalLength)*100;
-            if((int)Math.abs(percentage) > (absPercentage + 9)){
-                absPercentage = (int)Math.abs(percentage);
-                System.out.println(absPercentage+"% completed.....");
-                if(absPercentage == 100)
-                    System.exit(0);
-            }
+            System.err.println("100%");
+            iter.close();
         }
+    }
+    
+    private void write(BioSeq bioseq, List<SeqSymmetry> syms, FindJunctionOperator operator, DataOutputStream dos) throws IOException {
+        List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
+        SeqSymmetry container = operator.operate(bioseq, syms);
+        int children = container.getChildCount();
+        for (int k = 0; k < children; k++) {
+            junctions.add(container.getChild(k));
+        }
+        BedParser.writeBedFormat(dos, junctions, bioseq);
+        junctions.clear();
     }
 }

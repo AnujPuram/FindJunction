@@ -13,7 +13,6 @@ import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.symmetry.*;
 import com.affymetrix.genometryImpl.util.SeqUtils;
 import findjunction.filters.ChildThresholdFilter;
-import findjunction.filters.DuplicateSymFilter;
 import findjunction.filters.NoIntronFilter;
 import findjunction.filters.UniqueLocationFilter;
 import java.util.*;
@@ -24,11 +23,10 @@ import java.util.*;
  * @author Anuj
  */
 public class FindJunctionOperator implements Operator{
-    public static final int offset = 100000;
+    public static final int offset = 200000;
     private static final int default_threshold = 5;
     private static SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private static SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
-    private static SymmetryFilterI duplicateSymFilter = new DuplicateSymFilter();
     private static SymmetryFilterI uniqueLocationFilter = new UniqueLocationFilter();
     private static int threshold = default_threshold;
     private static boolean twoTracks, uniqueness;
@@ -53,7 +51,7 @@ public class FindJunctionOperator implements Operator{
     }
 
     public void setFilter(SymmetryFilterI filter){
-        duplicateSymFilter = filter;
+        
     }
     
     public void setResidueString(String residueString){
@@ -66,8 +64,7 @@ public class FindJunctionOperator implements Operator{
         HashMap<String, SpecificUcscBedSym> map = new HashMap<String , SpecificUcscBedSym>();
         
         for(SeqSymmetry sym : list){
-            if(noIntronFilter.filterSymmetry(bioseq, sym) && duplicateSymFilter.filterSymmetry(bioseq, sym) && 
-                    (!uniqueness) || (uniqueness && uniqueLocationFilter.filterSymmetry(bioseq, sym))){
+            if(noIntronFilter.filterSymmetry(bioseq, sym) && ((!uniqueness) || (uniqueness && uniqueLocationFilter.filterSymmetry(bioseq, sym)))){
                 updateIntronHashMap(sym , bioseq, map);
             }
 
@@ -77,6 +74,8 @@ public class FindJunctionOperator implements Operator{
         for(int i=0;i<syms.length;i++){
             container.addChild((SpecificUcscBedSym)syms[i]);
         }
+        map.clear();
+        symmetrySet.clear();
         return container;
     }
         
@@ -154,12 +153,6 @@ public class FindJunctionOperator implements Operator{
         SpecificUcscBedSym tempSym;
         int minimum = span.getMin();
         int maximum = span.getMax();
-        while(minimum > offset)
-            minimum = minimum-offset;
-        while(maximum > offset)
-            maximum = maximum-offset;
-        if(maximum < minimum)
-            maximum = maximum+offset;
         if(!twoTracks){
             if(minimum >= residueString.length() || maximum >= residueString.length()){
                 for(int j=residueString.length();j<maximum;j++)
