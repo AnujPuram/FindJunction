@@ -167,11 +167,13 @@ public class FindJunctionOperator implements Operator{
             }
             leftResidues = residueString.substring(minimum, minimum+2);
             rightResidues = residueString.substring(maximum-2,maximum);
-            if(leftResidues.equals("GT") && rightResidues.equals("AG")){
+            if((leftResidues.equals("GT") && rightResidues.equals("AG")) || (leftResidues.equals("GT") && rightResidues.equals("AC")) ||
+                    (leftResidues.equals("GC") && rightResidues.equals("AG"))){
                 currentForward = true;
                 canonical = true;
             }
-            else if(leftResidues.equals("CT") && rightResidues.equals("AC")){
+            else if((leftResidues.equals("CT") && rightResidues.equals("AC")) || (leftResidues.equals("GT") && rightResidues.equals("AC")) ||
+                    (leftResidues.equals("CG") && rightResidues.equals("TC"))){
                 currentForward = false;
                 canonical = true;
             }
