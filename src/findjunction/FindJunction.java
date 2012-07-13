@@ -31,7 +31,7 @@ public class FindJunction {
      * @param args the command line arguments
      */
     private static final int DEFAULT_THRESHOLD = 5; // maybe make all caps
-    public static boolean DEBUG = true;
+    public static boolean DEBUG = false;
     
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
