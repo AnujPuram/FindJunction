@@ -20,6 +20,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -159,8 +161,12 @@ public class FindJunction {
             dos = new DataOutputStream(System.out);
             os = null;
         } 
-        for(BioSeq bioSeq : list)
-            writeJunctions(bioSeq, bam, uri, twoBitFile, operator, dos);
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        for(BioSeq bioSeq : list){
+            WriteJunctionsThread thread = new WriteJunctionsThread(bioSeq, bam, uri, twoBitFile, operator, dos, DEBUG);
+            service.submit(thread);
+        }
+        service.shutdown();
         if(isreader  != null)
             isreader.close();
         if(dos != null && os != null){
@@ -168,49 +174,4 @@ public class FindJunction {
             os.close();
         }
     }    
-    
-    public void writeJunctions(BioSeq bioseq, BAM bam, URI bamURI, TwoBit twoBitFile, FindJunctionOperator operator, DataOutputStream dos) throws FileNotFoundException, Exception {
-        SeqSpan currentSpan = new SimpleMutableSeqSpan(bioseq.getMin(), bioseq.getMax(), bioseq);
-        List<SeqSymmetry> syms = new ArrayList<SeqSymmetry>();
-        SeqSymmetryIterator iter = bam.getIterator(bioseq, bioseq.getMin(), bioseq.getMax(), false);
-        if(twoBitFile != null)
-            operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
-        if (iter != null) {
-            System.err.print(bioseq.getID()+": ");
-            int currentProgress = (int)(iter.getProgress()*100);
-            int prevProgress = currentProgress;
-            while (iter.hasNext()) {
-                syms.add(iter.next());
-                if (syms.size() >= operator.offset) {
-                    if(DEBUG){
-                        System.err.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
-                    }
-                    write(bioseq, syms, operator, dos);
-                    currentProgress = (int)(iter.getProgress()*100);
-                    for(int i=0; i<currentProgress - prevProgress; i++){
-                        System.err.print("|");
-                    }
-                    prevProgress = currentProgress;
-                    syms.clear();
-                }
-            }
-            write(bioseq, syms, operator, dos);
-            for(int i=0; i<currentProgress - prevProgress; i++){
-                System.err.print("|");
-            }
-            System.err.println("100%");
-            iter.close();
-        }
-    }
-    
-    private void write(BioSeq bioseq, List<SeqSymmetry> syms, FindJunctionOperator operator, DataOutputStream dos) throws IOException {
-        List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
-        SeqSymmetry container = operator.operate(bioseq, syms);
-        int children = container.getChildCount();
-        for (int k = 0; k < children; k++) {
-            junctions.add(container.getChild(k));
-        }
-        BedParser.writeBedFormat(dos, junctions, bioseq);
-        junctions.clear();
-    }
 }
