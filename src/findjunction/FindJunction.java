@@ -30,16 +30,14 @@ public class FindJunction {
     /**
      * @param args the command line arguments
      */
-    private static final int default_threshold = 5; // maybe make all caps
-    float totalLength = 0,currentLength = 0;
-    int absPercentage = 0;
+    private static final int DEFAULT_THRESHOLD = 5; // maybe make all caps
     public static boolean DEBUG = true;
     
     public static void main(String[] args)throws FileNotFoundException,IOException, URISyntaxException, Exception {
         FindJunction fJ = new FindJunction();
         File directory = new File(".");
         String home = System.getProperty("user.home");
-        int threshold = default_threshold;
+        int threshold = DEFAULT_THRESHOLD;
         boolean twoTracks = false;
         boolean uniqueness = false;
         String input = args[args.length-1];
@@ -105,6 +103,8 @@ public class FindJunction {
     //This is the method where the control of the program gets started
     public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         File inputFile, twoBitFile;
+        if(DEBUG)
+            System.out.println("Initial Heap Memory: "+Runtime.getRuntime().freeMemory());
         URI inputURI, twoBitURI = null; 
         if(!(input.startsWith("file:") && !(input.startsWith("http:")) && !(input.startsWith("ftp:")))){
             inputFile = new File(input);
@@ -158,9 +158,7 @@ public class FindJunction {
         else{
             dos = new DataOutputStream(System.out);
             os = null;
-        }
-        for(BioSeq bioseq : list)
-            totalLength = totalLength + bioseq.getLength(); 
+        } 
         for(BioSeq bioSeq : list)
             writeJunctions(bioSeq, bam, uri, twoBitFile, operator, dos);
         if(isreader  != null)
@@ -184,6 +182,9 @@ public class FindJunction {
             while (iter.hasNext()) {
                 syms.add(iter.next());
                 if (syms.size() >= operator.offset) {
+                    if(DEBUG){
+                        System.out.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
+                    }
                     write(bioseq, syms, operator, dos);
                     currentProgress = (int)(iter.getProgress()*100);
                     for(int i=0; i<currentProgress - prevProgress; i++){
