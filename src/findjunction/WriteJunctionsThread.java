@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -56,9 +54,6 @@ public class WriteJunctionsThread implements Runnable{
             System.err.println("Error1: "+ex.getMessage());
         }
         if (iter != null) {
-            System.err.print(bioseq.getID()+": ");
-            int currentProgress = (int)(iter.getProgress()*100);
-            int prevProgress = currentProgress;
             while (iter.hasNext()) {
                 syms.add(iter.next());
                 if (syms.size() >= operator.offset) {
@@ -71,11 +66,6 @@ public class WriteJunctionsThread implements Runnable{
                     } catch (IOException ex) {
                         System.err.println("Error2 "+ex.getMessage());
                     }
-                    currentProgress = (int)(iter.getProgress()*100);
-                    for(int i=0; i<currentProgress - prevProgress; i++){
-                        System.err.print("|");
-                    }
-                    prevProgress = currentProgress;
                     syms.clear();
                 }
             }
@@ -85,10 +75,7 @@ public class WriteJunctionsThread implements Runnable{
             } catch (IOException ex) {  
                 System.err.println("Error3: "+ex.getMessage());
             }
-            for(int i=0; i<currentProgress - prevProgress; i++){
-                System.err.print("|");
-            }
-            System.err.println("100%");
+            System.err.println(bioseq.getID()+": done");
             iter.close();
         }
     }
