@@ -104,7 +104,7 @@ public class FindJunction {
     public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         File inputFile, twoBitFile;
         if(DEBUG)
-            System.out.println("Initial Heap Memory: "+Runtime.getRuntime().freeMemory());
+            System.err.println("Initial Heap Memory: "+Runtime.getRuntime().freeMemory());
         URI inputURI, twoBitURI = null; 
         if(!(input.startsWith("file:") && !(input.startsWith("http:")) && !(input.startsWith("ftp:")))){
             inputFile = new File(input);
@@ -183,7 +183,7 @@ public class FindJunction {
                 syms.add(iter.next());
                 if (syms.size() >= operator.offset) {
                     if(DEBUG){
-                        System.out.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
+                        System.err.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
                     }
                     write(bioseq, syms, operator, dos);
                     currentProgress = (int)(iter.getProgress()*100);
