@@ -57,22 +57,12 @@ public class WriteJunctionsThread{
                     if(DEBUG){
                         System.err.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
                     }
-                    try {
-                        junctions = createJunctions(syms);
-                        write(junctions);
-                    } catch (IOException ex) {
-                        System.err.println("Error2 "+ex.getMessage());
-                    }
                     syms.clear();
                 }
             }
-            try {
-                junctions = createJunctions(syms);
-                write(junctions);
-            } catch (IOException ex) {  
-                System.err.println("Error3: "+ex.getMessage());
-            }
             System.err.println(bioseq.getID()+": done");
+            junctions = createJunctions(bioseq, syms, map);
+            write(bioseq, junctions);
             iter.close();
         }
     }
