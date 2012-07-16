@@ -19,6 +19,7 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -161,12 +162,10 @@ public class FindJunction {
             dos = new DataOutputStream(System.out);
             os = null;
         } 
-        ExecutorService service = Executors.newFixedThreadPool(1);
+        WriteJunctionsThread thread = new WriteJunctionsThread(bam, twoBitFile, operator, dos, DEBUG);
         for(BioSeq bioSeq : list){
-            WriteJunctionsThread thread = new WriteJunctionsThread(bioSeq, bam, uri, twoBitFile, operator, dos, DEBUG);
-            service.submit(thread);
+            thread.run(bioSeq);
         }
-        service.shutdown();
         if(isreader  != null)
             isreader.close();
         if(dos != null && os != null){

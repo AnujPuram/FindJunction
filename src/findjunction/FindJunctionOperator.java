@@ -23,7 +23,7 @@ import java.util.*;
  * @author Anuj
  */
 public class FindJunctionOperator implements Operator{
-    public static final int offset = 50000;
+    public static final int offset = 200000;
     private static final int default_threshold = 5;
     private SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
@@ -57,26 +57,26 @@ public class FindJunctionOperator implements Operator{
     @Override
     public SeqSymmetry operate(BioSeq bioseq, List<SeqSymmetry> list) {
         TypeContainerAnnot container = new TypeContainerAnnot("test", "bed");
-        HashMap<String, SpecificUcscBedSym> map = new HashMap<String , SpecificUcscBedSym>();
-        
-        for(SeqSymmetry sym : list){
-            if(noIntronFilter.filterSymmetry(bioseq, sym) && ((!uniqueness) || (uniqueness && uniqueLocationFilter.filterSymmetry(bioseq, sym)))){
-                updateIntronHashMap(sym , bioseq, map);
-            }
-
-        }
-        Collection<SpecificUcscBedSym> symmetrySet = map.values();
+        HashMap<String, JunctionUcscBedSym> map = new HashMap<String , JunctionUcscBedSym>();
+        subOperate(bioseq, list, map);
+        Collection<JunctionUcscBedSym> symmetrySet = map.values();
         Object syms[] = symmetrySet.toArray();
         for(int i=0;i<syms.length;i++){
-            container.addChild((SpecificUcscBedSym)syms[i]);
+            container.addChild((JunctionUcscBedSym)syms[i]);
         }
         map.clear();
         symmetrySet.clear();
         return container;
     }
-        
-
     
+    public void subOperate(BioSeq bioseq, List<SeqSymmetry> list, HashMap<String, JunctionUcscBedSym> map){
+      for(SeqSymmetry sym : list){
+            if(noIntronFilter.filterSymmetry(bioseq, sym) && ((!uniqueness) || (uniqueness && uniqueLocationFilter.filterSymmetry(bioseq, sym)))){
+                updateIntronHashMap(sym , bioseq, map);
+            }
+
+        }
+    }    
     @Override
     public int getOperandCountMin(FileTypeCategory ftc) {
         return ftc == FileTypeCategory.Alignment ? 1 : 0;
@@ -112,7 +112,7 @@ public class FindJunctionOperator implements Operator{
     }
     
     //This method splits the given Sym into introns and filters out the qualified Introns
-    private void updateIntronHashMap(SeqSymmetry sym , BioSeq bioseq, HashMap<String, SpecificUcscBedSym> map){
+    private void updateIntronHashMap(SeqSymmetry sym , BioSeq bioseq, HashMap<String, JunctionUcscBedSym> map){
         List<Integer> childIntronIndices = new ArrayList<Integer>();
         int childCount = sym.getChildCount();
         SeqSymmetry intronChild, intronSym;
@@ -132,7 +132,7 @@ public class FindJunctionOperator implements Operator{
         }
     }
     
-    private void addToMap(SeqSymmetry intronSym , HashMap<String, SpecificUcscBedSym> map, BioSeq bioseq){
+    private void addToMap(SeqSymmetry intronSym , HashMap<String, JunctionUcscBedSym> map, BioSeq bioseq){
         int blockMins[] = new int[2];
         int blockMaxs[] = new int[2];
         boolean canonical = true;
@@ -144,7 +144,7 @@ public class FindJunctionOperator implements Operator{
         blockMaxs[1] = span.getMax() + threshold;
         String name;
         boolean currentForward = false;
-        SpecificUcscBedSym tempSym;
+        JunctionUcscBedSym tempSym;
         int minimum = span.getMin();
         int maximum = span.getMax();
         if(!twoTracks){
@@ -163,12 +163,13 @@ public class FindJunctionOperator implements Operator{
                 canonical = true;
                 currentForward = false;
             }
-            else if((leftResidues.equalsIgnoreCase("GT") && rightResidues.equalsIgnoreCase("AC")) || 
+            else if((leftResidues.equalsIgnoreCase("AT") && rightResidues.equalsIgnoreCase("AC")) || 
                     (leftResidues.equalsIgnoreCase("GC") && rightResidues.equalsIgnoreCase("AG"))){
                 canonical = false;
                 currentForward = true;
             }
-            else if(leftResidues.equalsIgnoreCase("GC") && rightResidues.equalsIgnoreCase("AG")){
+            else if((leftResidues.equalsIgnoreCase("GT") && rightResidues.equalsIgnoreCase("AT")) || 
+                    (leftResidues.equalsIgnoreCase("CT") && rightResidues.equalsIgnoreCase("GC"))){
                 canonical = false;
                 currentForward = false;
             }
@@ -186,19 +187,19 @@ public class FindJunctionOperator implements Operator{
             map.get(key).updateScore(currentForward);
         }
         else{
-            tempSym = new SpecificUcscBedSym("test", bioseq, span.getMin()-threshold,
+            tempSym = new JunctionUcscBedSym("test", bioseq, span.getMin()-threshold,
                span.getMax()+threshold, name, 1, currentForward, 0, 0, blockMins, blockMaxs, currentForward?1:0, currentForward?0:1, canonical);
             map.put(key,tempSym);
         }
     }
     
 }
-class SpecificUcscBedSym extends UcscBedSym{
+class JunctionUcscBedSym extends UcscBedSym{
     
     int positiveScore, negativeScore;
     float localScore = 1;
     boolean canonical;
-    public SpecificUcscBedSym(String type, BioSeq seq, int txMin, int txMax, String name, float score,boolean forward, 
+    public JunctionUcscBedSym(String type, BioSeq seq, int txMin, int txMax, String name, float score,boolean forward, 
             int cdsMin, int cdsMax, int[] blockMins, int[] blockMaxs, int positiveScore, int negativeScore, boolean canonical){
         super(type, seq, txMin, txMax, name, score, forward, cdsMin, cdsMax, blockMins, blockMaxs);
         this.positiveScore = positiveScore;
