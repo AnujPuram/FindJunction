@@ -24,6 +24,7 @@ import java.util.List;
  */
 public class WriteJunctionsThread{   
     
+    public static final int SIZE = 300;
     BAM bam;
     TwoBit twoBitFile;
     FindJunctionOperator operator;
@@ -53,30 +54,23 @@ public class WriteJunctionsThread{
         if (iter != null) {
             while (iter.hasNext()) {
                 syms.add(iter.next());
-                if (syms.size() >= operator.offset) {
+                if (syms.size() >= SIZE) {
                     if(DEBUG){
                         System.err.println("Available Heap Memory: "+ Runtime.getRuntime().freeMemory());
                     }
+                    operator.subOperate(bioseq, syms, map);
                     syms.clear();
                 }
             }
+            operator.subOperate(bioseq, syms, map);
+            syms.clear();
             System.err.println(bioseq.getID()+": done");
-            junctions = createJunctions(bioseq, syms, map);
-            write(bioseq, junctions);
+            write(bioseq, new ArrayList<SeqSymmetry>(map.values()));
+            map.clear();
             iter.close();
         }
     }
     
-    private List<SeqSymmetry> createJunctions(BioSeq bioseq, List<SeqSymmetry> syms, HashMap<String, JunctionUcscBedSym> map){
-        List<SeqSymmetry> junctions = new ArrayList<SeqSymmetry>();
-        operator.subOperate(bioseq, syms, map);
-        Collection<JunctionUcscBedSym> junctionValues = map.values(); 
-        Object junctionsArray[] = junctionValues.toArray();
-        for (int k = 0; k < junctionsArray.length; k++) {
-            junctions.add((JunctionUcscBedSym)junctionsArray[k]);
-        }
-        return junctions;
-    }
     private void write(BioSeq bioseq, List<SeqSymmetry> junctions) throws IOException {
         BedParser.writeBedFormat(dos, junctions, bioseq);
         junctions.clear();

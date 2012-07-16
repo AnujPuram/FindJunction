@@ -23,7 +23,6 @@ import java.util.*;
  * @author Anuj
  */
 public class FindJunctionOperator implements Operator{
-    public static final int offset = 200000;
     private static final int default_threshold = 5;
     private SymmetryFilterI noIntronFilter = new NoIntronFilter();
     private SymmetryFilterI childThresholdFilter = new ChildThresholdFilter();
