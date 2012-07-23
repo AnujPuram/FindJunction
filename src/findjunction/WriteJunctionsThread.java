@@ -6,15 +6,16 @@ package findjunction;
 
 import com.affymetrix.genometryImpl.BioSeq;
 import com.affymetrix.genometryImpl.SeqSpan;
+import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.genometryImpl.parsers.BedParser;
 import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
+import com.affymetrix.genometryImpl.symmetry.JunctionUcscBedSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -24,7 +25,7 @@ import java.util.List;
  */
 public class WriteJunctionsThread{   
     
-    public static final int SIZE = 300;
+    public static final int SIZE = 30000;
     BAM bam;
     TwoBit twoBitFile;
     FindJunctionOperator operator;
@@ -47,7 +48,7 @@ public class WriteJunctionsThread{
         try {
             iter = bam.getIterator(bioseq, bioseq.getMin(), bioseq.getMax(), false);
             if(twoBitFile != null)
-                operator.setResidueString(twoBitFile.getRegionResidues(currentSpan));
+                BioSeq.addResiduesToComposition(bioseq, twoBitFile.getRegionResidues(currentSpan), currentSpan);
         } catch (Exception ex) { 
             System.err.println("Error1: "+ex.getMessage());
         }

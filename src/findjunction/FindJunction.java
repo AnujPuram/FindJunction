@@ -6,23 +6,16 @@ package findjunction;
 
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
-import com.affymetrix.genometryImpl.SeqSpan;
-import com.affymetrix.genometryImpl.parsers.BedParser;
-import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
-import com.affymetrix.genometryImpl.symloader.BAM.SeqSymmetryIterator;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
-import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import com.affymetrix.genometryImpl.util.SynonymLookup;
+import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.igb.IGB;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  *
@@ -150,7 +143,12 @@ public class FindJunction {
             twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
             twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
         }
-        FindJunctionOperator operator = new FindJunctionOperator(threshold, twoTracks, twoBitFile, uniqueness);
+        FindJunctionOperator operator = new FindJunctionOperator();
+        HashMap<String, Object> paraMeters = new HashMap<String, Object>();
+        paraMeters.put("threshold", threshold);
+        paraMeters.put("twoTracks", twoTracks);
+        paraMeters.put("uniqueness", uniqueness);
+        operator.setParameters(paraMeters);
         List<BioSeq> list = bam.getChromosomeList();
         OutputStream os;
         DataOutputStream dos;
