@@ -145,9 +145,9 @@ public class FindJunction {
         }
         FindJunctionOperator operator = new FindJunctionOperator();
         HashMap<String, Object> paraMeters = new HashMap<String, Object>();
-        paraMeters.put("threshold", threshold);
-        paraMeters.put("twoTracks", twoTracks);
-        paraMeters.put("uniqueness", uniqueness);
+        paraMeters.put(FindJunctionOperator.THRESHOLD, threshold);
+        paraMeters.put(FindJunctionOperator.TWOTRACKS, twoTracks);
+        paraMeters.put(FindJunctionOperator.UNIQUENESS, uniqueness);
         operator.setParameters(paraMeters);
         List<BioSeq> list = bam.getChromosomeList();
         OutputStream os;
