@@ -11,6 +11,7 @@ import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
+import com.affymetrix.genometryImpl.util.GeneralUtils;
 import com.affymetrix.genometryImpl.util.SynonymLookup;
 import com.affymetrix.igb.IGB;
 import java.io.*;
@@ -121,37 +122,38 @@ public class FindJunction {
             outputFile = outputFile.getAbsoluteFile();
             output = outputFile.getAbsolutePath();
         }
+        
+        InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
+        SynonymLookup.getChromosomeLookup().loadSynonyms(isreader, true) ;
+        GeneralUtils.safeClose(isreader);
+        
         convertBAMToBed(inputURI , output, threshold, twoTracks, twoBitURI, uniqueness);        
     }
     
-    public URI relativeToAbsolute(String path){
+    private URI relativeToAbsolute(String path){
         File tempFile = new File(path);
         tempFile = tempFile.getAbsoluteFile();
         return tempFile.toURI();
     }
+      
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(URI input , String output, int threshold, boolean twoTracks, URI twoBit, boolean uniqueness) throws URISyntaxException, Exception{
-        URI uri = input;
-        URI twoBitURI;
-        String twoBitFileName = null;
         TwoBit twoBitFile = null;
-        InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
-        SynonymLookup.getChromosomeLookup().loadSynonyms(isreader, true) ;
         AnnotatedSeqGroup group = new AnnotatedSeqGroup("Find Junctions");
-        String fileName = uri.toString().substring(uri.toString().lastIndexOf("/")+1, uri.toString().lastIndexOf("."));
-        BAM bam = new BAM(uri,fileName,group);
+        String fileName = input.toString().substring(input.toString().lastIndexOf("/")+1, input.toString().lastIndexOf("."));
+        
+        BAM bam = new BAM(input, fileName, group);
         if(twoBit != null){
-            twoBitURI = twoBit;
-            twoBitFileName = twoBitURI.toString().substring(twoBitURI.toString().lastIndexOf("/")+1, twoBitURI.toString().lastIndexOf("."));
-            twoBitFile = new TwoBit(twoBitURI, twoBitFileName, group);
+            twoBitFile = new TwoBit(twoBit, twoBit.toString(), group);
         }
+        
         FindJunctionOperator operator = new FindJunctionOperator();
         HashMap<String, Object> paraMeters = new HashMap<String, Object>();
         paraMeters.put(FindJunctionOperator.THRESHOLD, threshold);
         paraMeters.put(FindJunctionOperator.TWOTRACKS, twoTracks);
         paraMeters.put(FindJunctionOperator.UNIQUENESS, uniqueness);
         operator.setParameters(paraMeters);
-        List<BioSeq> list = bam.getChromosomeList();
+        
         DataOutputStream dos;
         if(output != null){    
             dos = new DataOutputStream(new FileOutputStream(output));
@@ -159,18 +161,16 @@ public class FindJunction {
         else{
             dos = new DataOutputStream(System.out);
         } 
-        WriteJunctionsThread thread = new WriteJunctionsThread(bam, operator, dos, DEBUG);
-        for(BioSeq bioSeq : list){
+        
+        WriteJunctionsThread writeJunction = new WriteJunctionsThread(bam, operator, dos, DEBUG);
+        for(BioSeq bioSeq : bam.getChromosomeList()){
             SeqSpan currentSpan = new SimpleMutableSeqSpan(bioSeq.getMin(), bioSeq.getMax(), bioSeq);
             if(twoBitFile != null)
                 BioSeq.addResiduesToComposition(bioSeq, twoBitFile.getRegionResidues(currentSpan), currentSpan);
-            thread.run(bioSeq);
+            writeJunction.run(bioSeq);
             bioSeq.setComposition(null);
         }
-        if(isreader  != null)
-            isreader.close();
-        if(dos != null){
-            dos.close();
-        }
+        
+        GeneralUtils.safeClose(dos);
     }    
 }
