@@ -6,7 +6,9 @@ package findjunction;
 
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
+import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
+import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.util.SynonymLookup;
@@ -150,25 +152,25 @@ public class FindJunction {
         paraMeters.put(FindJunctionOperator.UNIQUENESS, uniqueness);
         operator.setParameters(paraMeters);
         List<BioSeq> list = bam.getChromosomeList();
-        OutputStream os;
         DataOutputStream dos;
         if(output != null){    
-            os  = new FileOutputStream(output);
-            dos = new DataOutputStream(os);
+            dos = new DataOutputStream(new FileOutputStream(output));
         }
         else{
             dos = new DataOutputStream(System.out);
-            os = null;
         } 
-        WriteJunctionsThread thread = new WriteJunctionsThread(bam, twoBitFile, operator, dos, DEBUG);
+        WriteJunctionsThread thread = new WriteJunctionsThread(bam, operator, dos, DEBUG);
         for(BioSeq bioSeq : list){
+            SeqSpan currentSpan = new SimpleMutableSeqSpan(bioSeq.getMin(), bioSeq.getMax(), bioSeq);
+            if(twoBitFile != null)
+                BioSeq.addResiduesToComposition(bioSeq, twoBitFile.getRegionResidues(currentSpan), currentSpan);
             thread.run(bioSeq);
+            bioSeq.setComposition(null);
         }
         if(isreader  != null)
             isreader.close();
-        if(dos != null && os != null){
+        if(dos != null){
             dos.close();
-            os.close();
         }
     }    
 }

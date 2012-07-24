@@ -20,7 +20,7 @@ import org.junit.Test;
  *
  * @author hiralv
  */
-public class SampleTest {
+public class FindJunctionsTest {
     
     String input;
     List<String> output = new ArrayList<String>();

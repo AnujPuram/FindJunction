@@ -5,12 +5,9 @@
 package findjunction;
 
 import com.affymetrix.genometryImpl.BioSeq;
-import com.affymetrix.genometryImpl.SeqSpan;
 import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.genometryImpl.parsers.BedParser;
-import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
-import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -26,28 +23,22 @@ public class WriteJunctionsThread{
     
     public static final int SIZE = 30000;
     BAM bam;
-    TwoBit twoBitFile;
     FindJunctionOperator operator;
     DataOutputStream dos;
     boolean DEBUG;
-    public WriteJunctionsThread(BAM bam, TwoBit twoBitFile, FindJunctionOperator operator, DataOutputStream dos, boolean DEBUG){
+    public WriteJunctionsThread(BAM bam, FindJunctionOperator operator, DataOutputStream dos, boolean DEBUG){
         this.bam = bam;
-        this.twoBitFile = twoBitFile;
         this.operator = operator;
         this.dos = dos;
         this.DEBUG = DEBUG;
     }
 
     public void run(BioSeq bioseq) throws IOException {
-        SeqSpan currentSpan = new SimpleMutableSeqSpan(bioseq.getMin(), bioseq.getMax(), bioseq);
         List<SeqSymmetry> syms = new ArrayList<SeqSymmetry>();
-        List<SeqSymmetry> junctions;
         HashMap<String, SeqSymmetry> map = new HashMap<String, SeqSymmetry>();
         BAM.SeqSymmetryIterator iter = null;
         try {
             iter = bam.getIterator(bioseq, bioseq.getMin(), bioseq.getMax(), false);
-            if(twoBitFile != null)
-                BioSeq.addResiduesToComposition(bioseq, twoBitFile.getRegionResidues(currentSpan), currentSpan);
         } catch (Exception ex) { 
             System.err.println("Error1: "+ex.getMessage());
         }
