@@ -6,10 +6,10 @@ package findjunction;
 
 import com.affymetrix.genometryImpl.AnnotatedSeqGroup;
 import com.affymetrix.genometryImpl.BioSeq;
+import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
 import com.affymetrix.genometryImpl.util.SynonymLookup;
-import com.affymetrix.genometryImpl.operator.FindJunctionOperator;
 import com.affymetrix.igb.IGB;
 import java.io.*;
 import java.net.URI;
