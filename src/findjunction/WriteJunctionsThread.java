@@ -11,7 +11,6 @@ import com.affymetrix.genometryImpl.parsers.BedParser;
 import com.affymetrix.genometryImpl.span.SimpleMutableSeqSpan;
 import com.affymetrix.genometryImpl.symloader.BAM;
 import com.affymetrix.genometryImpl.symloader.TwoBit;
-import com.affymetrix.genometryImpl.symmetry.JunctionUcscBedSym;
 import com.affymetrix.genometryImpl.symmetry.SeqSymmetry;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -43,7 +42,7 @@ public class WriteJunctionsThread{
         SeqSpan currentSpan = new SimpleMutableSeqSpan(bioseq.getMin(), bioseq.getMax(), bioseq);
         List<SeqSymmetry> syms = new ArrayList<SeqSymmetry>();
         List<SeqSymmetry> junctions;
-        HashMap<String, JunctionUcscBedSym> map = new HashMap<String, JunctionUcscBedSym>();
+        HashMap<String, SeqSymmetry> map = new HashMap<String, SeqSymmetry>();
         BAM.SeqSymmetryIterator iter = null;
         try {
             iter = bam.getIterator(bioseq, bioseq.getMin(), bioseq.getMax(), false);
