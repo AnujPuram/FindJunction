@@ -98,22 +98,17 @@ public class FindJunction {
     
     //This is the method where the control of the program gets started
     public void init(String input, String output, int threshold, boolean twoTracks, String twoBit, boolean uniqueness) throws URISyntaxException, Exception{
-        File inputFile, twoBitFile;
         if(DEBUG)
             System.err.println("Initial Heap Memory: "+Runtime.getRuntime().freeMemory());
         URI inputURI, twoBitURI = null; 
         if(!(input.startsWith("file:") && !(input.startsWith("http:")) && !(input.startsWith("ftp:")))){
-            inputFile = new File(input);
-            inputFile = inputFile.getAbsoluteFile();
-            inputURI = inputFile.toURI();
+            inputURI = relativeToAbsolute(input);
         }
         else
             inputURI = new URI(input);
         if(twoBit != null){
             if(!(twoBit.startsWith("file:") && !(twoBit.startsWith("http:")) && !(twoBit.startsWith("ftp:")))){
-                twoBitFile = new File(twoBit);
-                twoBitFile = twoBitFile.getAbsoluteFile();
-                twoBitURI = twoBitFile.toURI();
+                twoBitURI = relativeToAbsolute(twoBit);
             }
             else
                 twoBitURI = new URI(twoBit);
@@ -127,6 +122,11 @@ public class FindJunction {
         convertBAMToBed(inputURI , output, threshold, twoTracks, twoBitURI, uniqueness);        
     }
     
+    public URI relativeToAbsolute(String path){
+        File tempFile = new File(path);
+        tempFile = tempFile.getAbsoluteFile();
+        return tempFile.toURI();
+    }
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(URI input , String output, int threshold, boolean twoTracks, URI twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         URI uri = input;
