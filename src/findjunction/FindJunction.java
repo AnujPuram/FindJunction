@@ -143,14 +143,7 @@ public class FindJunction {
         if(twoBit != null){
             twoBitFile = new TwoBit(twoBit, twoBit.toString(), group);
         }
-        
-        FindJunctionOperator operator = new FindJunctionOperator();
-        HashMap<String, Object> paraMeters = new HashMap<String, Object>();
-        paraMeters.put(FindJunctionOperator.THRESHOLD, threshold);
-        paraMeters.put(FindJunctionOperator.TWOTRACKS, twoTracks);
-        paraMeters.put(FindJunctionOperator.UNIQUENESS, uniqueness);
-        operator.setParameters(paraMeters);
-        
+      
         DataOutputStream dos;
         if(output != null){    
             dos = new DataOutputStream(new FileOutputStream(output));
@@ -159,11 +152,12 @@ public class FindJunction {
             dos = new DataOutputStream(System.out);
         } 
         
-        WriteJunctionsThread writeJunction = new WriteJunctionsThread(bam, operator, dos, DEBUG);
+        WriteJunctionsThread writeJunction = new WriteJunctionsThread(bam, threshold, twoTracks, uniqueness, dos, DEBUG);
         for(BioSeq bioSeq : bam.getChromosomeList()){
             SeqSpan currentSpan = new SimpleMutableSeqSpan(bioSeq.getMin(), bioSeq.getMax(), bioSeq);
-            if(twoBitFile != null)
+            if(twoBitFile != null){
                 BioSeq.addResiduesToComposition(bioSeq, twoBitFile.getRegionResidues(currentSpan), currentSpan);
+            }
             writeJunction.run(bioSeq);
             bioSeq.setComposition(null);
         }
