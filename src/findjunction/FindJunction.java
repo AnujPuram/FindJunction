@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
+import sun.management.FileSystem;
 
 /**
  *
@@ -104,23 +105,14 @@ public class FindJunction {
         if(DEBUG)
             System.err.println("Initial Heap Memory: "+Runtime.getRuntime().freeMemory());
         URI inputURI, twoBitURI = null; 
-        if(!(input.startsWith("file:") && !(input.startsWith("http:")) && !(input.startsWith("ftp:")))){
-            inputURI = relativeToAbsolute(input);
-        }
-        else
-            inputURI = new URI(input);
+        
+        inputURI = relativeToAbsolute(input);
         if(twoBit != null){
-            if(!(twoBit.startsWith("file:") && !(twoBit.startsWith("http:")) && !(twoBit.startsWith("ftp:")))){
-                twoBitURI = relativeToAbsolute(twoBit);
-            }
-            else
-                twoBitURI = new URI(twoBit);
-                
+            twoBitURI = relativeToAbsolute(twoBit);    
         }
+        
         if(output != null){
-            File outputFile = new File(output);
-            outputFile = outputFile.getAbsoluteFile();
-            output = outputFile.getAbsolutePath();
+            output = getAbsoluteFile(output).getAbsolutePath();
         }
         
         InputStream isreader = IGB.class.getResourceAsStream("/chromosomes.txt");
@@ -130,12 +122,17 @@ public class FindJunction {
         convertBAMToBed(inputURI , output, threshold, twoTracks, twoBitURI, uniqueness);        
     }
     
-    private URI relativeToAbsolute(String path){
-        File tempFile = new File(path);
-        tempFile = tempFile.getAbsoluteFile();
-        return tempFile.toURI();
+    private URI relativeToAbsolute(String path) throws URISyntaxException{
+        if(!(path.startsWith("file:") && !(path.startsWith("http:")) && !(path.startsWith("ftp:")))){
+            return getAbsoluteFile(path).toURI();
+        }
+        return new URI(path);
     }
-      
+    
+    private File getAbsoluteFile(String path){
+        return new File(path).getAbsoluteFile();
+    }
+    
     //Takes BAM file in the given path as an input and filters it with the Simple Filter Class
     public void convertBAMToBed(URI input , String output, int threshold, boolean twoTracks, URI twoBit, boolean uniqueness) throws URISyntaxException, Exception{
         TwoBit twoBitFile = null;
