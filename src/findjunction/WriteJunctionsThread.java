@@ -22,15 +22,21 @@ import java.util.List;
 public class WriteJunctionsThread{   
     
     public static final int SIZE = 30000;
-    BAM bam;
-    FindJunctionOperator operator;
-    DataOutputStream dos;
-    boolean DEBUG;
-    public WriteJunctionsThread(BAM bam, FindJunctionOperator operator, DataOutputStream dos, boolean DEBUG){
+    private final BAM bam;
+    private final DataOutputStream dos;
+    private final boolean DEBUG;
+    private final FindJunctionOperator operator;
+    
+    public WriteJunctionsThread(BAM bam, int threshold, boolean twoTracks, boolean uniqueness, DataOutputStream dos, boolean DEBUG){
         this.bam = bam;
-        this.operator = operator;
         this.dos = dos;
         this.DEBUG = DEBUG;
+        this.operator = new FindJunctionOperator();
+        HashMap<String, Object> paraMeters = new HashMap<String, Object>();
+        paraMeters.put(FindJunctionOperator.THRESHOLD, threshold);
+        paraMeters.put(FindJunctionOperator.TWOTRACKS, twoTracks);
+        paraMeters.put(FindJunctionOperator.UNIQUENESS, uniqueness);
+        operator.setParameters(paraMeters);
     }
 
     public void run(BioSeq bioseq) throws IOException {
